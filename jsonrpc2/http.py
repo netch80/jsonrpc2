@@ -106,8 +106,8 @@ class HttpsHandler(HttpHandlerBase, urllib2.HTTPSHandler):
 
 
 class HttpRequestContext:
-    def __init__(self, url, data, headers, handler=None):
-        self.request = urllib2.Request(url, data, headers)
+    def __init__(self, request, handler=None):
+        self.request = request
         self.response = None
         self._on_result = None
         self._on_error = None
@@ -119,12 +119,12 @@ class HttpRequestContext:
         opener.process_response = {}
         self._opener = opener
 
-    def run(self, on_result=None, on_error=None):
+    def run(self, on_result=None, on_error=None, timeout=None):
         if on_result:
             self._on_result = on_result
         if on_error:
             self._on_error = on_error
-        self.response = self._opener.open(self.request)
+        self.response = self._opener.open(self.request, timeout=timeout)
         self.response.connect(self)
 
     def on_result(self):
