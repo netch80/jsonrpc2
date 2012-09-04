@@ -1,18 +1,11 @@
 import json
-import random
-import string
 import urllib2
 
+from base import _gen_id
+from errors import JsonRpcError
 from http import HttpRequestContext
 
 __metaclass__ = type
-
-VERSION = '2.0'
-
-_ID_CHARSET = string.ascii_letters + string.digits
-
-def _gen_id(length=8):
-    return ''.join([random.choice(_ID_CHARSET) for i in xrange(length)])
 
 def dumps(method, params, id=None, encoding=None):
     if id is None:
@@ -20,7 +13,7 @@ def dumps(method, params, id=None, encoding=None):
     if not encoding:
         encoding = 'utf-8'
     data = {
-        'jsonrpc': VERSION,
+        'jsonrpc': '2.0',
         'method': method,
         'params': params,
         'id': id
@@ -31,22 +24,6 @@ def loads(data, id, encoding=None):
     if not encoding:
         encoding = 'utf-8'
     return json.loads(data, encoding=encoding)
-
-
-class JsonRpcError(Exception):
-    '''
-    A base class of Json-RPC errors
-    '''
-    code = 32000
-    message = 'JSON-RPC error'
-
-    def __init__(self, code, message):
-        if code > 0:
-            code = -code
-        Exception.__init__(self, (code, message))
-        self.code = code
-        self.message = message
-
 
 class JsonRpcRequest(urllib2.Request):
     #: Default Json-RPC headers
