@@ -19,7 +19,15 @@ class HttpDispatcher(asyncore.dispatcher):
         finally:
             if self.response.will_close:
                 self.response.close()
-                self.close()
+
+    def handle_error(self):
+        error = asyncore.compact_traceback()[2]
+        try:
+            if self.response.context:
+                self.response.context.on_error(error)
+        finally:
+            if self.response.will_close:
+                self.response.close()
 
 
 class HttpResponse(httplib.HTTPResponse):
@@ -31,6 +39,10 @@ class HttpResponse(httplib.HTTPResponse):
 
     def connect(self, context):
         self.context = context
+
+    def close(self):
+        httplib.HTTPResponse.close(self)
+        self._dispatcher.close()
 
     recv = httplib.HTTPResponse.read
 
@@ -106,9 +118,9 @@ class HttpsHandler(HttpHandlerBase, urllib2.HTTPSHandler):
 
 
 class HttpRequestContext:
-    def __init__(self, request, handler=None):
-        self.request = request
-        self.response = None
+    def __init__(self, url, data, headers, handler=None):
+        self._request = urllib2.Request(url, data, headers)
+        self._response = None
         self._on_result = None
         self._on_error = None
         # Build opener
@@ -119,25 +131,25 @@ class HttpRequestContext:
         opener.process_response = {}
         self._opener = opener
 
-    def run(self, on_result=None, on_error=None, timeout=None):
+    def _run(self, on_result=None, on_error=None, timeout=None):
         if on_result:
             self._on_result = on_result
         if on_error:
             self._on_error = on_error
-        self.response = self._opener.open(self.request, timeout=timeout)
-        self.response.connect(self)
+        self._response = self._opener.open(self._request, timeout=timeout)
+        self._response.connect(self)
 
     def on_result(self):
-        if self.response is None:
+        if self._response is None:
             return
-        fp = socket._fileobject(self.response, close=True)
-        result = urllib.addinfourl(fp, self.response.msg,
-                                   self.request.get_full_url())
-        result.code = self.response.status
-        result.msg = self.response.reason
+        fp = socket._fileobject(self._response, close=True)
+        result = urllib.addinfourl(fp, self._response.msg,
+                                   self._request.get_full_url())
+        result.code = self._response.status
+        result.msg = self._response.reason
 
         # Run response processors
-        protocol = self.request.get_type()
+        protocol = self._request.get_type()
         method_name = protocol + '_response'
         for processor in self._processors.get(protocol, []):
             method = getattr(processor, method_name)
@@ -146,8 +158,9 @@ class HttpRequestContext:
         if self._on_result:
             self._on_result(result)
 
-    def on_error(self):
-        if self.response is None:
+    def on_error(self, error):
+        if self._response is None:
             return
-        # TODO
+        if self._on_error:
+            self._on_error(error)
 

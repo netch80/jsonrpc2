@@ -23,7 +23,7 @@ def dumps(message, encoding=None):
         data = {'exception': '%s' % err}
         raise JsonRpcParseError(data=data)
 
-def loads(data, cls, encoding=None):
+def loads(data, classes, encoding=None):
     if not encoding:
         encoding = 'utf-8'
     try:
@@ -34,24 +34,22 @@ def loads(data, cls, encoding=None):
     # Basic JSON-RPC validation
     if not isinstance(message, dict) or message.pop('jsonrpc', None) != VERSION:
         raise InvalidJsonRpcError()
-    try:
-        return cls(**message)
-    except TypeError:
+    # JSON-RPC message validation
+    for cls in classes:
         try:
-            raise JsonRpcError(**message)
-        except TypeError, err:
-            data = {'exception': '%s' % err}
-            raise JsonRpcParseError(data=data)
+            return cls(**message)
+        except TypeError:
+            pass
+    try:
+        raise JsonRpcError(**message)
+    except TypeError, err:
+        data = {'exception': '%s' % err}
+        raise JsonRpcParseError(data=data)
 
 
 class JsonRpcBase:
     def dumps(self, message, encoding=None):
         return dumps(message, encoding=encoding)
-
-    @classmethod
-    def loads(cls, data, encoding=None):
-        return loads(data, cls, encoding=None)
-
 
 class JsonRpcNotification(JsonRpcBase):
     def __init__(self, method, params):
@@ -63,11 +61,11 @@ class JsonRpcNotification(JsonRpcBase):
             'method': self.method,
             'params': self.params
         }
-        return JsonRpcBase.dumps(notification, encoding=encoding)
+        return JsonRpcBase.dumps(self, notification, encoding=encoding)
 
 class JsonRpcRequest(JsonRpcBase):
     def __init__(self, method, params, id=None):
-        self.id = id or gen_id()
+        self.id = id or _gen_id()
         self.method = method
         self.params = params
 
@@ -77,7 +75,7 @@ class JsonRpcRequest(JsonRpcBase):
             'params': self.params,
             'id': self.id
         }
-        return JsonRpcBase.dumps(request, encoding=encoding)
+        return JsonRpcBase.dumps(self, request, encoding=encoding)
 
 class JsonRpcResponse(JsonRpcBase):
     def __init__(self, id, result):
@@ -89,5 +87,5 @@ class JsonRpcResponse(JsonRpcBase):
             'result': self.result,
             'id': self.id
         }
-        return JsonRpcBase.dumps(response, encoding=encoding)
+        return JsonRpcBase.dumps(self, response, encoding=encoding)
 

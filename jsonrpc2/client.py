@@ -1,65 +1,57 @@
 import json
 import urllib2
 
-from base import _gen_id
-from errors import JsonRpcError
 from http import HttpRequestContext
+from base import loads, JsonRpcRequest, JsonRpcResponse
+from errors import JsonRpcError
 
 __metaclass__ = type
 
-def dumps(method, params, id=None, encoding=None):
-    if id is None:
-        id = _gen_id()
-    if not encoding:
-        encoding = 'utf-8'
-    data = {
-        'jsonrpc': '2.0',
-        'method': method,
-        'params': params,
-        'id': id
-    }
-    return json.dumps(data, encoding=encoding)
+class JsonRpcProcessor(urllib2.BaseHandler):
+    handler_order = 9999
 
-def loads(data, id, encoding=None):
-    if not encoding:
-        encoding = 'utf-8'
-    return json.loads(data, encoding=encoding)
+    def __init__(self, context):
+        self.context = context
 
-class JsonRpcRequest(urllib2.Request):
+    def http_response(self, request, response):
+        if response.code == 200:
+            response = loads(response.read(), [JsonRpcResponse],
+                             encoding=self.context.client.encoding)
+        return response.result
+
+    https_response = http_response
+
+
+class JsonRpcContext(HttpRequestContext):
     #: Default Json-RPC headers
     _headers = {
         'Content-Type': 'application/json-rpc',
         'User-Agent': 'Python-JsonRPC2'
     }
 
-    def __init__(self, url, method, params, encoding=None):
-        self.id = _gen_id()
-        self.method = method
-        self.params = params
-        self.encoding = encoding
-        data = dumps(method, params, self.id, encoding)
-        urllib2.Request.__init__(self, url, data, self._headers)
+    def __init__(self, client, request):
+        self.client = client
+        self.request = request
+        data = request.dumps(encoding=self.client.encoding)
+        HttpRequestContext.__init__(self, self.client.url, data,
+                                    self._headers, JsonRpcProcessor(self))
+
+    def call(self, on_result, on_error):
+        self._run(on_result, on_error, timeout=self.client.timeout)
+
+    def notify(self):
+        self._run(timeout=self.client.timeout)
+        self._response.close()
 
 
 class JsonRpcMethod:
-    def __init__(self, name, server):
-        self.name = name
-        self.server = server
+    def __init__(self, method, client):
+        self.method = method
+        self.client = client
 
     def __call__(self, params, on_result=None, on_error=None):
-        return self.server.request(self.name, params, on_result, on_error)
-
-
-class JsonRpcProcessor(urllib2.BaseHandler):
-    handler_order = 9999
-
-    def http_response(self, request, response):
-        print request
-        if response.code == 200:
-            response = loads(response.read(), request.id)
-        return response
-
-    https_response = http_response
+        request = JsonRpcRequest(self.method, params)
+        return self.client.request(request, on_result, on_error)
 
 
 class JsonRpcClient:
@@ -74,9 +66,8 @@ class JsonRpcClient:
     def __getattr__(self, method):
         return JsonRpcMethod(method, self)
 
-    def request(self, method, params, on_result=None, on_error=None):
-        request = JsonRpcRequest(self.url, method, params, self.encoding)
-        context = HttpRequestContext(request, JsonRpcProcessor())
-        context.run(on_result, on_error, self.timeout)
+    def request(self, request, on_result=None, on_error=None):
+        context = JsonRpcContext(self, request)
+        context.call(on_result, on_error)
         return context
 
