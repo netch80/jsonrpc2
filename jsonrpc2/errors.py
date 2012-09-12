@@ -25,11 +25,25 @@ class JsonRpcError(Exception):
         }
 
 
+# Standard errors:
+
 class JsonRpcParseError(JsonRpcError):
-    def __init__(self, **data):
-        JsonRpcError.__init__(self, 32700, 'Parse error.', **data)
+    def __init__(self, data=None):
+        JsonRpcError.__init__(self, 32700, 'Parse error.', data=data)
 
 class InvalidJsonRpcError(JsonRpcError):
-    def __init__(self, **data):
-        JsonRpcError.__init__(self, 32600, 'Invalid JSON-RPC.', **data)
+    def __init__(self, data=None):
+        JsonRpcError.__init__(self, 32600, 'Invalid JSON-RPC.', data=data)
+
+class JsonRpcMethodNotFoundError(JsonRpcError):
+    def __init__(self, id=None, data=None):
+        JsonRpcError.__init__(self, 32601, 'Method not found.', id, data=data)
+
+class JsonRpcInvalidParamsError(JsonRpcError):
+    def __init__(self, id=None, data=None):
+        JsonRpcError.__init__(self, 32602, 'Invalid params.', id, data=data)
+
+class JsonRpcInternalError(JsonRpcError):
+    def __init__(self, id=None, data=None):
+        JsonRpcError.__init__(self, 32603, 'Internal error.', id, data=data)
 
