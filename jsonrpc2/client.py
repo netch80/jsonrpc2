@@ -23,18 +23,12 @@ class JsonRpcProcessor(urllib2.BaseHandler):
 
 
 class JsonRpcContext(HttpRequestContext):
-    #: Default Json-RPC headers
-    _headers = {
-        'Content-Type': 'application/json-rpc',
-        'User-Agent': 'Python-JsonRPC2'
-    }
-
     def __init__(self, client, request):
         self.client = client
         self.request = request
         data = request.dumps(encoding=self.client.encoding)
         HttpRequestContext.__init__(self, self.client.url, data,
-                                    self._headers, JsonRpcProcessor(self))
+                                    JsonRpcProcessor(self))
 
     def call(self, on_result, on_error):
         self._run(on_result, on_error, timeout=self.client.timeout)

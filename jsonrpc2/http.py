@@ -4,6 +4,11 @@ import urllib
 import urllib2
 import asyncore
 
+HTTP_HEADERS = {
+    'Content-Type': 'application/json-rpc',
+    'User-Agent': 'Python-JsonRPC2'
+}
+
 __metaclass__ = type
 
 class HttpDispatcher(asyncore.dispatcher):
@@ -118,8 +123,8 @@ class HttpsHandler(HttpHandlerBase, urllib2.HTTPSHandler):
 
 
 class HttpRequestContext:
-    def __init__(self, url, data, headers, handler=None):
-        self._request = urllib2.Request(url, data, headers)
+    def __init__(self, url, data, handler=None):
+        self._request = urllib2.Request(url, data, HTTP_HEADERS)
         self._response = None
         self._on_result = None
         self._on_error = None
