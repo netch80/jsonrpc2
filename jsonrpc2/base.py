@@ -41,8 +41,8 @@ def loads(data, classes, encoding=None):
         except TypeError:
             pass
     try:
-        raise JsonRpcError(**message)
-    except TypeError, err:
+        raise JsonRpcError(id=message['id'], **message['error'])
+    except (TypeError, KeyError), err:
         data = {'exception': '%s' % err}
         raise JsonRpcParseError(data=data)
 
