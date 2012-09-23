@@ -31,6 +31,9 @@ from errors import JsonRpcError
 __metaclass__ = type
 
 class JsonRpcProcessor(urllib2.BaseHandler):
+    '''
+    A class of Json-RPC response processors.
+    '''
     handler_order = 9999
 
     def __init__(self, context):
@@ -46,6 +49,9 @@ class JsonRpcProcessor(urllib2.BaseHandler):
 
 
 class JsonRpcContext(HttpRequestContext):
+    '''
+    A class of Json-RPC request contexts.
+    '''
     def __init__(self, client, request):
         self.client = client
         self.request = request
@@ -62,6 +68,9 @@ class JsonRpcContext(HttpRequestContext):
 
 
 class JsonRpcMethod:
+    '''
+    A class of Json-RPC method calls.
+    '''
     def __init__(self, method, client):
         self.method = method
         self.client = client
@@ -72,6 +81,9 @@ class JsonRpcMethod:
 
 
 class JsonRpcClient:
+    '''
+    A class of Json-RPC clients.
+    '''
     #: Default HTTP path
     _http_path = '/RPC2'
 

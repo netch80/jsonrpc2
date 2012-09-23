@@ -35,6 +35,9 @@ HTTP_HEADERS = {
 __metaclass__ = type
 
 class HttpDispatcher(asyncore.dispatcher):
+    '''
+    A class of asynchronous HTTP response dispatchers.
+    '''
     def __init__(self, sock, response):
         asyncore.dispatcher.__init__(self, sock)
         self.response = response
@@ -59,6 +62,9 @@ class HttpDispatcher(asyncore.dispatcher):
 
 
 class HttpResponse(httplib.HTTPResponse):
+    '''
+    A class of asynchronous HTTP responses.
+    '''
     def __init__(self, sock, debuglevel=0, strict=0, method=None):
         httplib.HTTPResponse.__init__(self, sock, debuglevel=debuglevel,
                                       strict=strict, method=method)
@@ -76,6 +82,9 @@ class HttpResponse(httplib.HTTPResponse):
 
 
 class HttpConnectionBase:
+    '''
+    A base class for HTTP connections.
+    '''
     response_class = HttpResponse
     
     def getresponse(self):
@@ -86,13 +95,22 @@ class HttpConnectionBase:
                                    strict=self.strict, method=self._method)
 
 class HttpConnection(HttpConnectionBase, httplib.HTTPConnection):
+    '''
+    A class of HTTP connections.
+    '''
     __init__ = httplib.HTTPConnection.__init__
 
 class HttpsConnection(HttpConnectionBase, httplib.HTTPSConnection):
+    '''
+    A class of HTTPS connections.
+    '''
     __init__ = httplib.HTTPSConnection.__init__
 
 
 class HttpHandlerBase:
+    '''
+    A base class for asynchronous HTTP request handlers.
+    '''
     def do_open(self, connection_class, request):
         '''
         Based on urllib2.AbstractHTTPHandler.do_open().
@@ -133,12 +151,18 @@ class HttpHandlerBase:
         return connection.getresponse()
 
 class HttpHandler(HttpHandlerBase, urllib2.HTTPHandler):
+    '''
+    A class of asynchronous HTTP request handlers.
+    '''
     __init__ = urllib2.HTTPHandler.__init__
 
     def http_open(self, request):
         return self.do_open(HttpConnection, request)
 
 class HttpsHandler(HttpHandlerBase, urllib2.HTTPSHandler):
+    '''
+    A class of asynchronous HTTPS request handlers.
+    '''
     __init__ = urllib2.HTTPSHandler.__init__
 
     def https_open(self, request):
@@ -146,6 +170,9 @@ class HttpsHandler(HttpHandlerBase, urllib2.HTTPSHandler):
 
 
 class HttpRequestContext:
+    '''
+    A class of HTTP request contexts.
+    '''
     def __init__(self, url, data, handler=None):
         self._request = urllib2.Request(url, data, HTTP_HEADERS)
         self._response = None

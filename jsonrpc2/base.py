@@ -37,6 +37,12 @@ def _gen_id(length=8):
     return ''.join([random.choice(_ID_CHARSET) for i in xrange(length)])
 
 def dumps(message, encoding=None):
+    '''
+    Serializes the Json-RPC message given as dictionary object to a JSON
+    formatted data using the specified encoding.
+
+    Raises a JsonRpcParseError exception if the message cannot be serialized.
+    '''
     if not encoding:
         encoding = 'utf-8'
     message['jsonrpc'] = VERSION
@@ -47,6 +53,13 @@ def dumps(message, encoding=None):
         raise JsonRpcParseError(data=data)
 
 def loads(data, classes, encoding=None):
+    '''
+    Deserializes the given JSON formatted data to a Json-RPC message of one of
+    the specified classes using the specified encoding.
+
+    Raises a JsonRpcError exception if the message cannot be deserialized to
+    a message of one the specified classes.
+    '''
     if not encoding:
         encoding = 'utf-8'
     try:
@@ -71,10 +84,16 @@ def loads(data, classes, encoding=None):
 
 
 class JsonRpcBase:
+    '''
+    A base class for Json-RPC messages.
+    '''
     def dumps(self, message, encoding=None):
         return dumps(message, encoding=encoding)
 
 class JsonRpcNotification(JsonRpcBase):
+    '''
+    A class of Json-RPC notifications.
+    '''
     def __init__(self, method, params):
         self.method = method
         self.params = params
@@ -87,6 +106,9 @@ class JsonRpcNotification(JsonRpcBase):
         return JsonRpcBase.dumps(self, notification, encoding=encoding)
 
 class JsonRpcRequest(JsonRpcBase):
+    '''
+    A class of Json-RPC requests.
+    '''
     def __init__(self, method, params, id=None):
         self.id = id or _gen_id()
         self.method = method
@@ -101,6 +123,9 @@ class JsonRpcRequest(JsonRpcBase):
         return JsonRpcBase.dumps(self, request, encoding=encoding)
 
 class JsonRpcResponse(JsonRpcBase):
+    '''
+    A class of Json-RPC responses.
+    '''
     def __init__(self, id, result):
         self.id = id
         self.result = result

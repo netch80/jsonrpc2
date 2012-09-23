@@ -35,6 +35,9 @@ from http import HTTP_HEADERS
 __metaclass__ = type
 
 class JsonRpcIface:
+    '''
+    A base class for Json-RPC method interfaces.
+    '''
     _handled = False
 
     def __init__(self, server, request, handler):
@@ -84,6 +87,9 @@ class JsonRpcIface:
 
 
 class JsonRpcRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+    '''
+    A class of Json-RPC request handlers.
+    '''
     def __init__(self, request, address, server):
         self.request = request
         self.client_address = address
@@ -138,6 +144,9 @@ class JsonRpcRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
 
 class JsonRpcServer(asyncore.dispatcher):
+    '''
+    A class of Json-RPC servers.
+    '''
     def __init__(self, address, interface, encoding=None):
         if (not isinstance(interface, type) or
             not issubclass(interface, JsonRpcIface)):
