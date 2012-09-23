@@ -24,6 +24,7 @@ Basic functions and defintions of Json-RPC message classes/
 import json
 import random
 import string
+import asyncore
 
 from errors import JsonRpcError, JsonRpcParseError, InvalidJsonRpcError
 
@@ -81,6 +82,13 @@ def loads(data, classes, encoding=None):
     except (TypeError, KeyError), err:
         data = {'exception': '%s' % err}
         raise JsonRpcParseError(data=data)
+
+
+def loop():
+    '''
+    Runs an asynchronous event loop.
+    '''
+    asyncore.loop(timeout=1, use_poll=True)
 
 
 class JsonRpcBase:
