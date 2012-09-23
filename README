@@ -1,4 +1,9 @@
-jsonrpc2
-========
+Json-RPC2
+=========
 
-The Python asynchronous Json-RPC library based on asyncore and urllib2
+The Python asynchronous Json-RPC library based on The Python Standard Library:
+ * asyncore
+ * urllib2
+ * httplib
+ * BaseHTTPServer
+
