@@ -162,3 +162,12 @@ class JsonRpcServer(asyncore.dispatcher):
         request, address = self.accept()
         JsonRpcRequestHandler(request, address, self)
 
+    def handle_error(self):
+        try:
+            raise
+        finally:
+            self.handle_close()
+
+    def handle_close(self):
+        self.close()
+

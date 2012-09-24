@@ -24,4 +24,5 @@ The main module of Json-RPC2 library.
 from base import loop
 from client import JsonRpcClient
 from server import JsonRpcIface, JsonRpcServer
+from errors import JsonRpcError, JsonRpcInternalError
 
