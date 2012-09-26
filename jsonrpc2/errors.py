@@ -26,7 +26,7 @@ class JsonRpcError(Exception):
     A base class of Json-RPC errors.
     '''
     def __init__(self, code=32000, message='JSON-RPC error.',
-                      id=None, data=None):
+                       id=None, data=None):
         if code > 0:
             code = -code
         Exception.__init__(self, (code, message))

@@ -18,7 +18,7 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 '''
-Basic functions and defintions of Json-RPC message classes/
+Basic functions and defintions of Json-RPC message classes.
 '''
 
 import json

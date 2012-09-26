@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # This file is part of Json-RPC2.
 #
 # Copyright (C) 2012 Marcin Lyko
