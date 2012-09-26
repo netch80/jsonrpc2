@@ -21,6 +21,13 @@
 The main module of Json-RPC2 library.
 '''
 
+__version__ = '0.1.0'
+__copyright__ = 'Copyright (C) 2012 Marcin Lyko'
+__license__ = 'LGPL'
+
+__author__ = 'Marcin Lyko'
+__contact__ = 'marcin.g.lyko@gmail.com'
+
 from base import loop
 from client import JsonRpcClient
 from server import JsonRpcIface, JsonRpcServer
