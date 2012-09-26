@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+#
 # This file is part of Json-RPC2.
 #
 # Copyright (C) 2012 Marcin Lyko
@@ -17,19 +19,21 @@
 # along with Json-RPC2; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-'''
-The main module of Json-RPC2 library.
-'''
+from distutils.core import setup
 
-__version__ = '0.1.0'
-__copyright__ = 'Copyright (C) 2012 Marcin Lyko'
-__license__ = 'GNU LGPLv3+'
+import jsonrpc2
 
-__author__ = 'Marcin Lyko'
-__contact__ = 'marcin.g.lyko@gmail.com'
+setup(
+    name='jsonrpc2',
+    version=jsonrpc2.__version__,
+    platforms='any',
 
-from base import loop
-from client import JsonRpcClient
-from server import JsonRpcIface, JsonRpcServer
-from errors import JsonRpcError, JsonRpcInternalError
+    author=jsonrpc2.__author__,
+    author_email=jsonrpc2.__contact__,
+    license=jsonrpc2.__license__,
+    url='https://github.com/mlyko/jsonrpc2',
+    description='The Python asynchronous Json-RPC library',
+
+    packages=['jsonrpc2']
+)
 
