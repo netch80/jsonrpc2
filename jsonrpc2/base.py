@@ -53,7 +53,7 @@ def dumps(message, encoding=None):
         data = {'exception': '%s' % err}
         raise JsonRpcParseError(data=data)
 
-def loads(data, classes, encoding=None):
+def loads(data, classes=[], encoding=None):
     '''
     Deserializes the given JSON formatted data to a Json-RPC message of one of
     the specified classes using the specified encoding.
@@ -100,7 +100,12 @@ class JsonRpcBase:
 
 class JsonRpcNotification(JsonRpcBase):
     '''
-    A class of Json-RPC notifications.
+    A class of Json-RPC notifications:
+    {
+        "jsonrpc": "2.0",
+        "method": "foo",
+        "params": null
+    }
     '''
     def __init__(self, method, params):
         self.method = method
@@ -115,7 +120,13 @@ class JsonRpcNotification(JsonRpcBase):
 
 class JsonRpcRequest(JsonRpcBase):
     '''
-    A class of Json-RPC requests.
+    A class of Json-RPC requests:
+    {
+        "jsonrpc": "2.0",
+        "id": "1",
+        "method": "foo",
+        "params": null
+    }
     '''
     def __init__(self, method, params, id=None):
         self.id = id or _gen_id()
@@ -132,7 +143,12 @@ class JsonRpcRequest(JsonRpcBase):
 
 class JsonRpcResponse(JsonRpcBase):
     '''
-    A class of Json-RPC responses.
+    A class of Json-RPC responses:
+    {
+        "jsonrpc": "2.0",
+        "id": "1",
+        "result": null
+    }
     '''
     def __init__(self, id, result):
         self.id = id
