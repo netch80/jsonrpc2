@@ -65,8 +65,8 @@ class HttpResponse(httplib.HTTPResponse):
     '''
     A class of asynchronous HTTP responses.
     '''
-    def __init__(self, sock, debuglevel=0, strict=0, method=None):
-        httplib.HTTPResponse.__init__(self, sock, debuglevel=debuglevel,
+    def __init__(self, sock, strict=0, method=None):
+        httplib.HTTPResponse.__init__(self, sock, debuglevel=0,
                                       strict=strict, method=method)
         self._dispatcher = HttpDispatcher(sock, self)
         self.context = None

@@ -26,6 +26,7 @@ import socket
 import asyncore
 import BaseHTTPServer
 
+import logger
 from base import dumps, loads, \
                  JsonRpcNotification, JsonRpcRequest, JsonRpcResponse
 from errors import JsonRpcError, JsonRpcInternalError, \
@@ -46,7 +47,12 @@ class JsonRpcIface:
         self._handler = handler
 
     def __call__(self):
+        '''
+        Calls an interface method from the current request.
+        '''
         method = getattr(self, self.request.method, None)
+        logger.debug('Call request: method=%s, params=%s'
+                      % (method, self.request.params))
         try:
             if not callable(method):
                 data = {'method': self.request.method}
@@ -71,17 +77,24 @@ class JsonRpcIface:
                 self.on_result(result)
 
     def on_result(self, result):
+        '''
+        A callback method that dispatches the given result of a requested
+        method to a client.
+        '''
+        logger.debug('Call request: result=%s' % result)
         if self._handled:
             return
         self._handler.on_result(self.request, result)
         self._handled = True
 
     def on_error(self, error):
+        '''
+        A callback method that dispatches the given error of a requested
+        method to a client.
+        '''
+        logger.debug('Call request: error=%s' % error)
         if self._handled:
             return
-        if not isinstance(error, JsonRpcError):
-            data = {'exception': '%s' % error}
-            error = JsonRpcInternalError(data=data)
         self._handler.on_error(self.request, error)
         self._handled = True
 
@@ -90,6 +103,8 @@ class JsonRpcRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     '''
     A class of Json-RPC request handlers.
     '''
+    default_request_version = 'HTTP/1.1'
+
     def __init__(self, request, address, server):
         self.request = request
         self.client_address = address
@@ -102,25 +117,42 @@ class JsonRpcRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         '''
         Handles an Json-RPC request.
         '''
+        self.command = None
+        self.requestline = ''
+        self.request_version = self.default_request_version
         self.close_connection = 1
 
-        self.raw_requestline = self.rfile.readline()
-        if not self.raw_requestline:
+        try:
+            self.raw_requestline = self.rfile.readline()
+            if not self.raw_requestline:
+                return
+
+            if not self.parse_request():
+                return
+
+            if self.command != 'POST':
+                self.send_error(501, 'Unsupported method (%r)' % self.command)
+                return
+
+            data = self.rfile.read(int(self.headers.get('content-lenght', 0)))
+        except socket.timeout:
+            self.send_error(408, 'Request timed out')
             return
 
-        if not self.parse_request():
-            return
-
-        if self.command != 'POST':
-            self.send_error(501, 'Unsupported method (%r)' % self.command)
-
-        data = self.rfile.read(int(self.headers['content-length']))
-        request = loads(data, [JsonRpcNotification, JsonRpcRequest],
-                        encoding=self.server.encoding)
-        method = self.server.interface(self.server, request, self)
-        method()
+        request = None
+        try:
+            request = loads(data, [JsonRpcNotification, JsonRpcRequest],
+                            encoding=self.server.encoding)
+            method = self.server.interface(self.server, request, self)
+            method()
+        except Exception, err:
+            self.on_error(request, err)
 
     def finish(self, data):
+        '''
+        Finishes handling an Json-RPC request by sending a response to
+        the corresponding client.
+        '''
         try:
             self.send_response(200)
             for key, value in HTTP_HEADERS.iteritems():
@@ -132,13 +164,20 @@ class JsonRpcRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         finally:
             sys.exc_traceback = None    # Help garbage collection
 
+    def log_message(self, format, *args):
+        logger.debug(format % args)
+
     def on_result(self, request, result):
         response = JsonRpcResponse(request.id, result)
         data = response.dumps(encoding=self.server.encoding)
         self.finish(data)
 
     def on_error(self, request, error):
-        error.id = request.id
+        if not isinstance(error, JsonRpcError):
+            data = {'exception': '%s' % error}
+            error = JsonRpcInternalError(data=data)
+        if request:
+            error.id = request.id
         data = dumps(error.marshal(), encoding=self.server.encoding)
         self.finish(data)
 
@@ -147,27 +186,50 @@ class JsonRpcServer(asyncore.dispatcher):
     '''
     A class of Json-RPC servers.
     '''
-    def __init__(self, address, interface, encoding=None):
+    #: A class of Json-RPC request handlers
+    handler_class = JsonRpcRequestHandler
+
+    def __init__(self, address, interface, timeout=None,
+                       encoding=None, logging=None):
         if (not isinstance(interface, type) or
             not issubclass(interface, JsonRpcIface)):
             raise TypeError('Interface must be subclass of JsonRpcIface')
+
         self.interface = interface
+        self.timeout = timeout
         self.encoding = encoding or 'utf-8'
-        asyncore.dispatcher.__init__(self)
-        self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.bind(address)
-        self.listen(0)
+        logger.setup(logging)
+
+        try:
+            asyncore.dispatcher.__init__(self)
+            self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.bind(address)
+            self.listen(0)
+        except Exception:
+            logger.exception('Server run error')
+            raise
+
+    def __repr__(self):
+        addr = '%s:%d' % self.addr
+        return '<%s(%s) at %#x>' % (self.__class__.__name__, addr, id(self))
+
+    __str__ = __repr__
 
     def handle_accept(self):
+        '''
+        Runs a handler for a new Json-RPC request.
+        '''
         request, address = self.accept()
-        JsonRpcRequestHandler(request, address, self)
+        logger.debug('Handle client: %s:%d' % address)
+        request.settimeout(self.timeout)
+        self.handler_class(request, address, self)
 
     def handle_error(self):
-        try:
-            raise
-        finally:
-            self.handle_close()
+        logger.exception('Unhandled server error')
 
     def handle_close(self):
+        '''
+        Closes the Json-RPC server.
+        '''
         self.close()
 

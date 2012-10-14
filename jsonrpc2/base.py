@@ -25,6 +25,7 @@ import json
 import random
 import string
 import asyncore
+import logger
 
 from errors import JsonRpcError, JsonRpcParseError, InvalidJsonRpcError
 
@@ -35,6 +36,9 @@ _ID_CHARSET = string.ascii_letters + string.digits
 __metaclass__ = type
 
 def _gen_id(length=8):
+    '''
+    Generates random message ID.
+    '''
     return ''.join([random.choice(_ID_CHARSET) for i in xrange(length)])
 
 def dumps(message, encoding=None):
@@ -44,6 +48,7 @@ def dumps(message, encoding=None):
 
     Raises a JsonRpcParseError exception if the message cannot be serialized.
     '''
+    logger.debug('Dumps message: %s' % message)
     if not encoding:
         encoding = 'utf-8'
     message['jsonrpc'] = VERSION
@@ -61,6 +66,7 @@ def loads(data, classes=[], encoding=None):
     Raises a JsonRpcError exception if the message cannot be deserialized to
     a message of one the specified classes.
     '''
+    logger.debug('Loads message: %s' % data)
     if not encoding:
         encoding = 'utf-8'
     try:

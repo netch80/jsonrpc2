@@ -24,8 +24,9 @@ Definitions of Json-RPC client side classes.
 import json
 import urllib2
 
-from http import HttpRequestContext
+import logger
 from base import loads, JsonRpcRequest, JsonRpcResponse
+from http import HttpRequestContext
 from errors import JsonRpcError
 
 __metaclass__ = type
@@ -87,15 +88,18 @@ class JsonRpcClient:
     #: Default HTTP path
     _http_path = '/RPC2'
 
-    def __init__(self, url, timeout=None, encoding=None):
+    def __init__(self, url, timeout=None, encoding=None, logging=None):
         self.url = url
         self.timeout = timeout
         self.encoding = encoding or 'utf-8'
+        logger.setup(logging)
 
     def __getattr__(self, method):
         return JsonRpcMethod(method, self)
 
     def request(self, request, on_result=None, on_error=None):
+        logger.debug('Call request: url=%r, method=%r, parmas=%r'
+                      % (self.url, request.method, request.params))
         context = JsonRpcContext(self, request)
         context.call(on_result, on_error)
         return context
