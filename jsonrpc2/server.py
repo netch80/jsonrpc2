@@ -27,7 +27,7 @@ import asyncore
 import BaseHTTPServer
 
 import logger
-from base import dumps, loads, \
+from base import dumps, loads, VERSION, \
                  JsonRpcNotification, JsonRpcRequest, JsonRpcResponse
 from errors import JsonRpcError, JsonRpcInternalError, \
                    JsonRpcMethodNotFoundError, JsonRpcInvalidParamsError
@@ -103,6 +103,13 @@ class JsonRpcRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     '''
     A class of Json-RPC request handlers.
     '''
+    # The server software version
+    server_version = 'Json-RPC2/%s' % VERSION
+
+    # The supported version of the HTTP protocol
+    protocol_version = 'HTTP/1.1'
+
+    # The default request version
     default_request_version = 'HTTP/1.1'
 
     def __init__(self, request, address, server):
