@@ -104,7 +104,7 @@ class JsonRpcRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     A class of Json-RPC request handlers.
     '''
     # The server software version
-    server_version = 'Json-RPC2/%s' % VERSION
+    server_version = 'JsonRPC2/%s' % VERSION
 
     # The supported version of the HTTP protocol
     protocol_version = 'HTTP/1.1'
