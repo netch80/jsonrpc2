@@ -24,18 +24,28 @@ Provides unit tests for the Json-RPC2 server.py module.
 import json
 import random
 import socket
+import httplib
 import urllib2
 import unittest
 
 from jsonrpc2 import base
-from jsonrpc2 import http
 from jsonrpc2 import server
 from jsonrpc2 import errors
 
 class TestIface(server.JsonRpcIface):
-    def test(self, a, b=2):
+    def test_result(self, a, b=2):
         return {'status': 'OK',
                 'params': {'a': a, 'b': b}}
+
+    def test_on_result(self, a, b):
+        self.on_result({'status': 'OK',
+                        'params': {'a': a, 'b': b}})
+
+    def test_exception(self, a):
+        raise Exception(str(a))
+
+    def test_on_error(self, a):
+        self.on_error(Exception(str(a)))
 
 
 class TestHandler(server.JsonRpcRequestHandler):
@@ -53,7 +63,7 @@ class TestHandler(server.JsonRpcRequestHandler):
         self.server.close()
 
 
-class ServerBaseTest(unittest.TestCase):
+class ServerTestBase(unittest.TestCase):
     def setUp(self):
         self.port = random.randint(10000, 65000)
         self.server = server.JsonRpcServer(('localhost', self.port),
@@ -61,8 +71,20 @@ class ServerBaseTest(unittest.TestCase):
         self.server.handler_class = TestHandler
         self.server.resp_code = None
 
+    def tearDown(self):
+        self.server.close()
 
-class ServerRawTest(ServerBaseTest):
+
+class ServerBasicTest(ServerTestBase):
+    def test_invalid_interface(self):
+        try:
+            server.JsonRpcServer(('localhost', self.port + 1),
+                                 base.JsonRpcBase)
+        except TypeError, err:
+            self.assertEqual(str(err), 'Interface is not JsonRpcIface subclass')
+        else:
+            self.assertFalse(True)
+
     def test_tcp_empty(self):
         client = socket.create_connection(('localhost', self.port), 1)
         base.loop()
@@ -88,7 +110,7 @@ class ServerRawTest(ServerBaseTest):
         data = 'POST / HTTP/1.1\r\nContent-Lenght: 0\r\n\r\n'
         client.send(data)
         base.loop()
-        resp = http.HttpResponse(client)
+        resp = httplib.HTTPResponse(client)
         resp.begin()
         data = resp.read()
         client.close()
@@ -112,7 +134,7 @@ class ServerRawTest(ServerBaseTest):
         data = 'POST / HTTP/1.1\r\nContent-Lenght: 14\r\n\r\nTest text data'
         client.send(data)
         base.loop()
-        resp = http.HttpResponse(client)
+        resp = httplib.HTTPResponse(client)
         resp.begin()
         data = resp.read()
         client.close()
@@ -124,16 +146,16 @@ class ServerRawTest(ServerBaseTest):
             self.assertEqual(err.message, 'Parse error.')
 
 
-class ServerTest(ServerBaseTest):
+class ServerJsonRpcTest(ServerTestBase):
     def test_call_method_list_params(self):
         client = socket.create_connection(('localhost', self.port), 1)
         data = '''POST / HTTP/1.1\r
-Content-Lenght: 78\r
+Content-Lenght: 85\r
 \r
-{"jsonrpc": "2.0", "id": "12345abc", "method": "test", "params": [123, "abc"]}'''
+{"jsonrpc": "2.0", "id": "12345abc", "method": "test_result", "params": [123, "abc"]}'''
         client.send(data)
         base.loop()
-        resp = http.HttpResponse(client)
+        resp = httplib.HTTPResponse(client)
         resp.begin()
         data = resp.read()
         client.close()
@@ -147,12 +169,12 @@ Content-Lenght: 78\r
     def test_call_method_dict_params(self):
         client = socket.create_connection(('localhost', self.port), 1)
         data = '''POST / HTTP/1.1\r
-Content-Lenght: 78\r
+Content-Lenght: 85\r
 \r
-{"jsonrpc": "2.0", "id": "12345abc", "method": "test", "params": {"a": "abc"}}'''
+{"jsonrpc": "2.0", "id": "12345abc", "method": "test_result", "params": {"a": "abc"}}'''
         client.send(data)
         base.loop()
-        resp = http.HttpResponse(client)
+        resp = httplib.HTTPResponse(client)
         resp.begin()
         data = resp.read()
         client.close()
@@ -162,4 +184,156 @@ Content-Lenght: 78\r
         self.assertEqual(response.id, '12345abc')
         self.assertEqual(response.result, {'status': 'OK',
                                            'params': {'a': 'abc', 'b': 2}})
+
+    def test_call_method_not_found(self):
+        client = socket.create_connection(('localhost', self.port), 1)
+        data = '''POST / HTTP/1.1\r
+Content-Lenght: 102\r
+\r
+{"jsonrpc": "2.0", "id": "12345abc", "method": "method_not_found", "params": {"a": "abc", "b": "efg"}}'''
+        client.send(data)
+        base.loop()
+        resp = httplib.HTTPResponse(client)
+        resp.begin()
+        data = resp.read()
+        client.close()
+        self.assertEqual(self.server.resp_code, 200)
+        try:
+            base.loads(data, [base.JsonRpcResponse])
+        except errors.JsonRpcError, err:
+            self.assertEqual(err.code, -32601)
+            self.assertEqual(err.message, 'Method not found.')
+            self.assertEqual(err.data, {'method': 'method_not_found'})
+
+    def test_call_invalid_list_params(self):
+        client = socket.create_connection(('localhost', self.port), 1)
+        data = '''POST / HTTP/1.1\r
+Content-Lenght: 91\r
+\r
+{"jsonrpc": "2.0", "id": "12345abc", "method": "test_result", "params": [123, "abc", true]}'''
+        client.send(data)
+        base.loop()
+        resp = httplib.HTTPResponse(client)
+        resp.begin()
+        data = resp.read()
+        client.close()
+        self.assertEqual(self.server.resp_code, 200)
+        try:
+            base.loads(data, [base.JsonRpcResponse])
+        except errors.JsonRpcError, err:
+            self.assertEqual(err.code, -32602)
+            self.assertEqual(err.message, 'Invalid params.')
+            self.assertEqual(err.data, {'method': 'test_result',
+                                        'params': [123, 'abc', True]})
+
+    def test_call_invalid_dict_params(self):
+        client = socket.create_connection(('localhost', self.port), 1)
+        data = '''POST / HTTP/1.1\r
+Content-Lenght: 106\r
+\r
+{"jsonrpc": "2.0", "id": "12345abc", "method": "test_result", "params": {"a": 123, "b": "abc", "c": true}}'''
+        client.send(data)
+        base.loop()
+        resp = httplib.HTTPResponse(client)
+        resp.begin()
+        data = resp.read()
+        client.close()
+        self.assertEqual(self.server.resp_code, 200)
+        try:
+            base.loads(data, [base.JsonRpcResponse])
+        except errors.JsonRpcError, err:
+            self.assertEqual(err.code, -32602)
+            self.assertEqual(err.message, 'Invalid params.')
+            self.assertEqual(err.data, {'method': 'test_result',
+                                        'params': {'a': 123, 'b': 'abc', 'c': True}})
+
+    def test_interface_on_result(self):
+        client = socket.create_connection(('localhost', self.port), 1)
+        data = '''POST / HTTP/1.1\r
+Content-Lenght: 88\r
+\r
+{"jsonrpc": "2.0", "id": "12345abc", "method": "test_on_result", "params": [123, "abc"]}'''
+        client.send(data)
+        base.loop()
+        resp = httplib.HTTPResponse(client)
+        resp.begin()
+        data = resp.read()
+        client.close()
+        self.assertEqual(self.server.resp_code, 200)
+        response = base.loads(data, [base.JsonRpcResponse])
+        self.assertTrue(isinstance(response, base.JsonRpcResponse))
+        self.assertEqual(response.id, '12345abc')
+        self.assertEqual(response.result, {'status': 'OK',
+                                           'params': {'a': 123, 'b': 'abc'}})
+
+    def test_interface_exception(self):
+        client = socket.create_connection(('localhost', self.port), 1)
+        data = '''POST / HTTP/1.1\r
+Content-Lenght: 83\r
+\r
+{"jsonrpc": "2.0", "id": "12345abc", "method": "test_exception", "params": ["abc"]}'''
+        client.send(data)
+        base.loop()
+        resp = httplib.HTTPResponse(client)
+        resp.begin()
+        data = resp.read()
+        client.close()
+        self.assertEqual(self.server.resp_code, 200)
+        try:
+            base.loads(data, [base.JsonRpcResponse])
+        except errors.JsonRpcError, err:
+            self.assertEqual(err.code, -32603)
+            self.assertEqual(err.message, 'Internal error.')
+            self.assertEqual(err.data, {'exception': 'abc'})
+
+    def test_interface_on_error(self):
+        client = socket.create_connection(('localhost', self.port), 1)
+        data = '''POST / HTTP/1.1\r
+Content-Lenght: 82\r
+\r
+{"jsonrpc": "2.0", "id": "12345abc", "method": "test_on_error", "params": ["efg"]}'''
+        client.send(data)
+        base.loop()
+        resp = httplib.HTTPResponse(client)
+        resp.begin()
+        data = resp.read()
+        client.close()
+        self.assertEqual(self.server.resp_code, 200)
+        try:
+            base.loads(data, [base.JsonRpcResponse])
+        except errors.JsonRpcError, err:
+            self.assertEqual(err.code, -32603)
+            self.assertEqual(err.message, 'Internal error.')
+            self.assertEqual(err.data, {'exception': 'efg'})
+
+    def test_call_method_few_times(self):
+        client = socket.create_connection(('localhost', self.port), 1)
+        data = '''POST / HTTP/1.1\r
+Content-Lenght: 85\r
+\r
+{"jsonrpc": "2.0", "id": "12345abc", "method": "test_result", "params": [123, "abc"]}'''
+        client.send(data)
+        client.send(data)
+        client.send(data)
+        base.loop()
+        # First
+        resp = httplib.HTTPResponse(client)
+        resp.begin()
+        data = resp.read()
+        self.assertEqual(self.server.resp_code, 200)
+        response = base.loads(data, [base.JsonRpcResponse])
+        self.assertTrue(isinstance(response, base.JsonRpcResponse))
+        self.assertEqual(response.id, '12345abc')
+        self.assertEqual(response.result, {'status': 'OK',
+                                           'params': {'a': 123, 'b': 'abc'}})
+        # Secend...
+        resp = httplib.HTTPResponse(client)
+        try:
+            resp.begin()
+        except httplib.BadStatusLine, err:
+            self.assertEqual(str(err), '')
+        else:
+            self.assertFalse(True)
+        finally:
+            client.close()
 
