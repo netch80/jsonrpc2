@@ -61,7 +61,7 @@ class MessagesTest(unittest.TestCase):
         }
         notification = base.JsonRpcNotification('foo', params)
         result = {
-            'jsonrpc': base.VERSION,
+            'jsonrpc': base.SPEC_VER,
             'method': 'foo',
             'params': params
         }
@@ -74,7 +74,7 @@ class MessagesTest(unittest.TestCase):
         }
         request = base.JsonRpcRequest('foo', params, '_test_id_')
         result = {
-            'jsonrpc': base.VERSION,
+            'jsonrpc': base.SPEC_VER,
             'method': 'foo',
             'params': params,
             'id': '_test_id_'
@@ -90,7 +90,7 @@ class MessagesTest(unittest.TestCase):
         self.assertTrue(isinstance(request.id, basestring)
                         and len(request.id) == 8)
         result = {
-            'jsonrpc': base.VERSION,
+            'jsonrpc': base.SPEC_VER,
             'method': 'foo',
             'params': params,
             'id': request.id
@@ -104,7 +104,7 @@ class MessagesTest(unittest.TestCase):
         }
         response = base.JsonRpcResponse('_test_id_', params)
         result = {
-            'jsonrpc': base.VERSION,
+            'jsonrpc': base.SPEC_VER,
             'result': params,
             'id': '_test_id_'
         }
@@ -117,7 +117,7 @@ class FunctionsTest(unittest.TestCase):
             'content': '_test_content_'
         }
         data = base.dumps(message)
-        message['jsonrpc'] = base.VERSION
+        message['jsonrpc'] = base.SPEC_VER
         self.assertEqual(json.dumps(message), data)
 
     def test_dumps_invalid(self):
@@ -130,7 +130,7 @@ class FunctionsTest(unittest.TestCase):
         req_id = '_test_id_'
         params = [1, 'b', {'c': 3}]
         message = {
-            'jsonrpc': base.VERSION,
+            'jsonrpc': base.SPEC_VER,
             'method': 'foo',
             'params': params,
             'id': req_id
@@ -143,7 +143,7 @@ class FunctionsTest(unittest.TestCase):
 
     def test_loads_error(self):
         message = {
-            'jsonrpc': base.VERSION,
+            'jsonrpc': base.SPEC_VER,
             'error': {
                 'code': -39999,
                 'message': 'Test error message'
@@ -158,7 +158,7 @@ class FunctionsTest(unittest.TestCase):
             'b': 'test'
         }
         message = {
-            'jsonrpc': base.VERSION,
+            'jsonrpc': base.SPEC_VER,
             'method': 'foo',
             'params': params,
             'id': '_test_id_'
@@ -181,7 +181,7 @@ class FunctionsTest(unittest.TestCase):
 
     def test_loads_invalid_json(self):
         message = {
-            'jsonrpc': base.VERSION,
+            'jsonrpc': base.SPEC_VER,
             'method': 'foo',
             'params': None,
             'id': '_test_id_'

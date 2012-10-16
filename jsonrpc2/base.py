@@ -33,7 +33,7 @@ from errors import JsonRpcError, JsonRpcParseError, InvalidJsonRpcError
 VERSION = '0.1.0'
 
 # Json-RPC specification version
-_SPEC_VER = '2.0'
+SPEC_VER = '2.0'
 
 _ID_CHARSET = string.ascii_letters + string.digits
 
@@ -55,7 +55,7 @@ def dumps(message, encoding=None):
     logger.debug('Dumps message: %s' % message)
     if not encoding:
         encoding = 'utf-8'
-    message['jsonrpc'] = _SPEC_VER
+    message['jsonrpc'] = SPEC_VER
     try:
         return json.dumps(message, encoding=encoding)
     except TypeError, err:
@@ -80,7 +80,7 @@ def loads(data, classes=[], encoding=None):
         raise JsonRpcParseError(data=data)
     # Basic JSON-RPC validation
     if (not isinstance(message, dict) or
-        message.pop('jsonrpc', None) != _SPEC_VER):
+        message.pop('jsonrpc', None) != SPEC_VER):
         raise InvalidJsonRpcError()
     # JSON-RPC message validation
     for cls in classes:
