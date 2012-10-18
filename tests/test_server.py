@@ -326,7 +326,7 @@ Content-Lenght: 85\r
         self.assertEqual(response.id, '12345abc')
         self.assertEqual(response.result, {'status': 'OK',
                                            'params': {'a': 123, 'b': 'abc'}})
-        # Secend...
+        # Second...
         resp = httplib.HTTPResponse(client)
         try:
             resp.begin()
