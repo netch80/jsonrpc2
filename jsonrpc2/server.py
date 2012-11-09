@@ -200,7 +200,7 @@ class JsonRpcServer(asyncore.dispatcher):
                        encoding=None, logging=None):
         if (not isinstance(interface, type) or
             not issubclass(interface, JsonRpcIface)):
-            raise TypeError('Interface must be subclass of JsonRpcIface')
+            raise TypeError('Interface must be JsonRpcIface subclass')
 
         self.interface = interface
         self.timeout = timeout

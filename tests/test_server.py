@@ -81,7 +81,7 @@ class ServerBasicTest(ServerTestBase):
             server.JsonRpcServer(('localhost', self.port + 1),
                                  base.JsonRpcBase)
         except TypeError, err:
-            self.assertEqual(str(err), 'Interface is not JsonRpcIface subclass')
+            self.assertEqual(str(err), 'Interface must be JsonRpcIface subclass')
         else:
             self.assertFalse(True)
 
