@@ -65,9 +65,9 @@ class HttpResponse(httplib.HTTPResponse):
     '''
     A class of asynchronous HTTP responses.
     '''
-    def __init__(self, sock, strict=0, method=None):
+    def __init__(self, sock, method=None):
         httplib.HTTPResponse.__init__(self, sock, debuglevel=0,
-                                      strict=strict, method=method)
+                                      strict=1, method=method)
         self._dispatcher = HttpDispatcher(sock, self)
         self.context = None
 
@@ -91,8 +91,7 @@ class HttpConnectionBase:
         '''
         Based on httplib.HTTPConnection.getresponse().
         '''
-        return self.response_class(self.sock, self.debuglevel,
-                                   strict=self.strict, method=self._method)
+        return self.response_class(self.sock, method=self._method)
 
 class HttpConnection(HttpConnectionBase, httplib.HTTPConnection):
     '''
@@ -173,18 +172,33 @@ class HttpRequestContext:
     '''
     A class of HTTP request contexts.
     '''
+    _handler_classes = [
+        urllib2.ProxyHandler,
+        urllib2.HTTPRedirectHandler,
+        HttpHandler,
+        HttpsHandler
+    ]
+    
     def __init__(self, url, data, handler=None):
         self._request = urllib2.Request(url, data, HTTP_HEADERS)
         self._response = None
         self._on_result = None
         self._on_error = None
-        # Build opener
-        opener = urllib2.build_opener(HttpHandler(), HttpsHandler())
+        # Connection opener
+        self._opener = urllib2.OpenerDirector()
+        self._processors = {}
+        self._setup_opener(handler)
+
+    def _setup_opener(self, handler=None):
+        '''
+        Sets up a corresponding HTTP connection opener.
+        '''
+        for handler_class in self._handler_classes:
+            self._opener.add_handler(handler_class())
         if handler:
-            opener.add_handler(handler)
-        self._processors = opener.process_response
-        opener.process_response = {}
-        self._opener = opener
+            self._opener.add_handler(handler)
+        self._processors = self._opener.process_response
+        self._opener.process_response = {}
 
     def _run(self, on_result=None, on_error=None, timeout=None):
         if on_result:
@@ -206,12 +220,17 @@ class HttpRequestContext:
         # Run response processors
         protocol = self._request.get_type()
         method_name = protocol + '_response'
-        for processor in self._processors.get(protocol, []):
-            method = getattr(processor, method_name)
-            result = method(self.request, result)
-
-        if self._on_result:
-            self._on_result(result)
+        try:
+            for processor in self._processors.get(protocol, []):
+                method = getattr(processor, method_name)
+                result = method(self.request, result)
+                if result:
+                    break
+        except Exception, err:
+            self.on_error(err)
+        else:
+            if self._on_result:
+                self._on_result(result)
 
     def on_error(self, error):
         if self._response is None:

@@ -25,9 +25,10 @@ import json
 import urllib2
 
 import logger
-from base import loads, JsonRpcRequest, JsonRpcResponse
 from http import HttpRequestContext
-from errors import JsonRpcError
+from base import loads, JsonRpcRequest, JsonRpcResponse
+from errors import JsonRpcError, JsonRpcProtocolError, \
+                   JsonRpcInvalidResponseError
 
 __metaclass__ = type
 
@@ -41,10 +42,17 @@ class JsonRpcProcessor(urllib2.BaseHandler):
         self.context = context
 
     def http_response(self, request, response):
+        '''
+        Processes the given Json-RPC response.
+        '''
         if response.code == 200:
-            response = loads(response.read(), [JsonRpcResponse],
-                             encoding=self.context.client.encoding)
-        return response.result
+            message = loads(response.read(), [JsonRpcResponse],
+                            encoding=self.context.client.encoding)
+            if request.id != message.id:
+                raise JsonRpcInvalidResponseError(data={'id': message.id})
+            return message.result
+        raise JsonRpcProtocolError(response.code, response.msg,
+                                   data={'exception': response.read()})
 
     https_response = http_response
 
@@ -67,6 +75,12 @@ class JsonRpcContext(HttpRequestContext):
         self._run(timeout=self.client.timeout)
         self._response.close()
 
+    def on_error(self, error):
+        if not isinstance(error, JsonRpcError):
+            error = JsonRpcInvalidResponseError(data={'exception': str(error)})
+        error.id = self.request.id
+        HttpRequestContext.on_error(self, error)
+
 
 class JsonRpcMethod:
     '''
@@ -76,7 +90,7 @@ class JsonRpcMethod:
         self.method = method
         self.client = client
 
-    def __call__(self, params, on_result=None, on_error=None):
+    def __call__(self, params=None, on_result=None, on_error=None):
         request = JsonRpcRequest(self.method, params)
         return self.client.request(request, on_result, on_error)
 
