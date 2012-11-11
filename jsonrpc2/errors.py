@@ -37,7 +37,7 @@ class JsonRpcError(Exception):
     '''
     def __init__(self, code=32000, message='JSON-RPC error.',
                        id=None, data=None):
-        if code > 0:
+        if code > 9999:
             code = -code
         Exception.__init__(self, (code, message))
         self.id = id
@@ -79,4 +79,15 @@ class JsonRpcInvalidParamsError(JsonRpcError):
 class JsonRpcInternalError(JsonRpcError):
     def __init__(self, id=None, data=None):
         JsonRpcError.__init__(self, 32603, 'Internal error.', id, data=data)
+
+class JsonRpcInvalidResponseError(JsonRpcError):
+    def __init__(self, id=None, data=None):
+        JsonRpcError.__init__(self, 32650, 'Invalid response.', id, data=data)
+
+
+# Protocol error:
+
+class JsonRpcProtocolError(JsonRpcError):
+    def __init__(self, code, message, id=None, data=None):
+        JsonRpcError.__init__(self, code, message, id=id, data=data)
 
