@@ -96,7 +96,7 @@ class ClientBasicTest(ClientTestBase):
         self.client.foo(on_error=on_error)
         base.loop()
         self._assert_message(self._request, base.JsonRpcRequest)
-        self._assert_message(self._result, errors.JsonRpcInvalidResponseError)
+        self._assert_message(self._result, errors.JsonRpcResponseError)
         self.assertEqual(self._result.id, self._request.id)
         self.assertEqual(self._result.code, -32650)
         self.assertEqual(self._result.message, 'Invalid response.')
@@ -114,13 +114,13 @@ class ClientBasicTest(ClientTestBase):
         self.client.foo(on_error=on_error)
         base.loop()
         self._assert_message(self._request, base.JsonRpcRequest)
-        self._assert_message(self._result, errors.JsonRpcInvalidResponseError)
+        self._assert_message(self._result, errors.JsonRpcResponseError)
         self.assertEqual(self._result.id, self._request.id)
         self.assertEqual(self._result.code, -32650)
         self.assertEqual(self._result.message, 'Invalid response.')
         self.assertEqual(self._result.data, {'exception': 'Test tcp data'})
 
-    def test_tcp_get_response(self):
+    def test_http_get_response(self):
         def callback(data):
             self._request_callback(data)
             return 'GET / HTTP/1.1\r\n\r\n'
@@ -132,11 +132,39 @@ class ClientBasicTest(ClientTestBase):
         self.client.foo(on_error=on_error)
         base.loop()
         self._assert_message(self._request, base.JsonRpcRequest)
-        self._assert_message(self._result, errors.JsonRpcInvalidResponseError)
+        self._assert_message(self._result, errors.JsonRpcResponseError)
         self.assertEqual(self._result.id, self._request.id)
         self.assertEqual(self._result.code, -32650)
         self.assertEqual(self._result.message, 'Invalid response.')
         self.assertEqual(self._result.data, {'exception': 'GET / HTTP/1.1\r\n'})
+
+    def test_response_timeout(self):
+        def on_error(error):
+            self._result = error
+
+        self.client.timeout = 0.1
+        self.server.del_channel()
+
+        context = self.client.foo(on_error=on_error)
+        self.assertTrue(isinstance(context, client.JsonRpcContext))
+        base.loop()
+        self._assert_message(context.request, base.JsonRpcRequest)
+        self._assert_message(self._result, errors.JsonRpcProtocolError)
+        self.assertEqual(self._result.id, context.request.id)
+        self.assertEqual(self._result.code, 110)
+
+    def test_connection_refused(self):
+        def on_error(error):
+            self._result = error
+
+        self.client.url = 'http://localhost:%d' % (self.port + 1)
+        context = self.client.foo(on_error=on_error)
+        self.assertTrue(isinstance(context, client.JsonRpcContext))
+        #base.loop()
+        self._assert_message(context.request, base.JsonRpcRequest)
+        self._assert_message(self._result, errors.JsonRpcProtocolError)
+        self.assertEqual(self._result.id, context.request.id)
+        self.assertEqual(self._result.code, 111)
 
 
 class ClientRequestTest(ClientTestBase):
@@ -152,9 +180,11 @@ Content-Length: %d\r
         return self._response_format % (len(data), data)
 
     def test_call_method(self):
-        self.client.foo()
+        context = self.client.foo()
+        self.assertTrue(isinstance(context, client.JsonRpcContext))
         base.loop()
         self._assert_message(self._request, base.JsonRpcRequest)
+        self.assertEqual(self._request.id, context.request.id)
         self.assertEqual(self._request.method, 'foo')
         self.assertEqual(self._request.params, None)
 
@@ -225,7 +255,7 @@ Content-Length: %d\r
         self.client.foo(on_error=on_error)
         base.loop()
         self._assert_message(self._request, base.JsonRpcRequest)
-        self._assert_message(self._result, errors.JsonRpcInvalidResponseError)
+        self._assert_message(self._result, errors.JsonRpcResponseError)
         self.assertEqual(self._result.id, self._request.id)
         self.assertEqual(self._result.code, -32650)
         self.assertEqual(self._result.message, 'Invalid response.')
