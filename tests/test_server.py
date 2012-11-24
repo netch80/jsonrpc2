@@ -107,7 +107,7 @@ class ServerBasicTest(ServerTestBase):
 
     def test_http_post_empty(self):
         client = socket.create_connection(('localhost', self.port), 1)
-        data = 'POST / HTTP/1.1\r\nContent-Lenght: 0\r\n\r\n'
+        data = 'POST / HTTP/1.1\r\nContent-Length: 0\r\n\r\n'
         client.send(data)
         base.loop()
         resp = httplib.HTTPResponse(client)
@@ -123,7 +123,7 @@ class ServerBasicTest(ServerTestBase):
 
     def test_http_post_broken_data(self):
         client = socket.create_connection(('localhost', self.port), 1)
-        data = 'POST / HTTP/1.1\r\nContent-Lenght: 1024\r\n\r\nTest broken data'
+        data = 'POST / HTTP/1.1\r\nContent-Length: 1024\r\n\r\nTest broken data'
         client.send(data)
         base.loop()
         client.close()
@@ -131,7 +131,7 @@ class ServerBasicTest(ServerTestBase):
 
     def test_http_post_data(self):
         client = socket.create_connection(('localhost', self.port), 1)
-        data = 'POST / HTTP/1.1\r\nContent-Lenght: 14\r\n\r\nTest text data'
+        data = 'POST / HTTP/1.1\r\nContent-Length: 14\r\n\r\nTest text data'
         client.send(data)
         base.loop()
         resp = httplib.HTTPResponse(client)
@@ -150,7 +150,7 @@ class ServerJsonRpcTest(ServerTestBase):
     def test_call_method_list_params(self):
         client = socket.create_connection(('localhost', self.port), 1)
         data = '''POST / HTTP/1.1\r
-Content-Lenght: 85\r
+Content-Length: 85\r
 \r
 {"jsonrpc": "2.0", "id": "12345abc", "method": "test_result", "params": [123, "abc"]}'''
         client.send(data)
@@ -169,7 +169,7 @@ Content-Lenght: 85\r
     def test_call_method_dict_params(self):
         client = socket.create_connection(('localhost', self.port), 1)
         data = '''POST / HTTP/1.1\r
-Content-Lenght: 85\r
+Content-Length: 85\r
 \r
 {"jsonrpc": "2.0", "id": "12345abc", "method": "test_result", "params": {"a": "abc"}}'''
         client.send(data)
@@ -188,7 +188,7 @@ Content-Lenght: 85\r
     def test_call_method_not_found(self):
         client = socket.create_connection(('localhost', self.port), 1)
         data = '''POST / HTTP/1.1\r
-Content-Lenght: 102\r
+Content-Length: 102\r
 \r
 {"jsonrpc": "2.0", "id": "12345abc", "method": "method_not_found", "params": {"a": "abc", "b": "efg"}}'''
         client.send(data)
@@ -208,7 +208,7 @@ Content-Lenght: 102\r
     def test_call_invalid_list_params(self):
         client = socket.create_connection(('localhost', self.port), 1)
         data = '''POST / HTTP/1.1\r
-Content-Lenght: 91\r
+Content-Length: 91\r
 \r
 {"jsonrpc": "2.0", "id": "12345abc", "method": "test_result", "params": [123, "abc", true]}'''
         client.send(data)
@@ -229,7 +229,7 @@ Content-Lenght: 91\r
     def test_call_invalid_dict_params(self):
         client = socket.create_connection(('localhost', self.port), 1)
         data = '''POST / HTTP/1.1\r
-Content-Lenght: 106\r
+Content-Length: 106\r
 \r
 {"jsonrpc": "2.0", "id": "12345abc", "method": "test_result", "params": {"a": 123, "b": "abc", "c": true}}'''
         client.send(data)
@@ -250,7 +250,7 @@ Content-Lenght: 106\r
     def test_interface_on_result(self):
         client = socket.create_connection(('localhost', self.port), 1)
         data = '''POST / HTTP/1.1\r
-Content-Lenght: 88\r
+Content-Length: 88\r
 \r
 {"jsonrpc": "2.0", "id": "12345abc", "method": "test_on_result", "params": [123, "abc"]}'''
         client.send(data)
@@ -269,7 +269,7 @@ Content-Lenght: 88\r
     def test_interface_exception(self):
         client = socket.create_connection(('localhost', self.port), 1)
         data = '''POST / HTTP/1.1\r
-Content-Lenght: 83\r
+Content-Length: 83\r
 \r
 {"jsonrpc": "2.0", "id": "12345abc", "method": "test_exception", "params": ["abc"]}'''
         client.send(data)
@@ -289,7 +289,7 @@ Content-Lenght: 83\r
     def test_interface_on_error(self):
         client = socket.create_connection(('localhost', self.port), 1)
         data = '''POST / HTTP/1.1\r
-Content-Lenght: 82\r
+Content-Length: 82\r
 \r
 {"jsonrpc": "2.0", "id": "12345abc", "method": "test_on_error", "params": ["efg"]}'''
         client.send(data)
@@ -309,7 +309,7 @@ Content-Lenght: 82\r
     def test_call_method_few_times(self):
         client = socket.create_connection(('localhost', self.port), 1)
         data = '''POST / HTTP/1.1\r
-Content-Lenght: 85\r
+Content-Length: 85\r
 \r
 {"jsonrpc": "2.0", "id": "12345abc", "method": "test_result", "params": [123, "abc"]}'''
         client.send(data)

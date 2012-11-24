@@ -141,7 +141,7 @@ class JsonRpcRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 self.send_error(501, 'Unsupported method (%r)' % self.command)
                 return
 
-            data = self.rfile.read(int(self.headers.get('content-lenght', 0)))
+            data = self.rfile.read(int(self.headers.get('content-length', 0)))
         except socket.timeout:
             self.send_error(408, 'Request timed out')
             return
