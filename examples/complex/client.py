@@ -30,7 +30,7 @@ def on_result(result):
     logging.info('Server result: %s' % result)
 
 def on_error(error):
-    logging.error('Server error: %s' % error)
+    logging.error('Server error: %s [%s]' % (error, error.data))
 
 def run():
     client = JsonRpcClient('http://localhost:8082')
