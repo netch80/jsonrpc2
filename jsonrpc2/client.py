@@ -27,8 +27,7 @@ import urllib2
 import logger
 from http import HttpRequestContext
 from base import loads, JsonRpcRequest, JsonRpcResponse
-from errors import JsonRpcError, JsonRpcProtocolError, \
-                   JsonRpcInvalidResponseError
+from errors import JsonRpcError, JsonRpcProtocolError, JsonRpcResponseError
 
 __metaclass__ = type
 
@@ -49,7 +48,7 @@ class JsonRpcProcessor(urllib2.BaseHandler):
             message = loads(response.read(), [JsonRpcResponse],
                             encoding=self.context.client.encoding)
             if request.id != message.id:
-                raise JsonRpcInvalidResponseError(data={'id': message.id})
+                raise JsonRpcResponseError(data={'id': message.id})
             return message.result
         raise JsonRpcProtocolError(response.code, response.msg,
                                    data={'exception': response.read()})
@@ -76,8 +75,16 @@ class JsonRpcContext(HttpRequestContext):
         self._response.close()
 
     def on_error(self, error):
+        if isinstance(error, urllib2.URLError):
+            code = 400
+            message = str(error.reason)
+            try:
+                code, message = error.reason[:2]
+            except ValueError:
+                pass
+            error = JsonRpcProtocolError(code, message)
         if not isinstance(error, JsonRpcError):
-            error = JsonRpcInvalidResponseError(data={'exception': str(error)})
+            error = JsonRpcResponseError(data={'exception': str(error)})
         error.id = self.request.id
         HttpRequestContext.on_error(self, error)
 

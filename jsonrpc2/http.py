@@ -21,6 +21,7 @@
 Definitions of HTTP helper classes for Json-RPC client side.
 '''
 
+import time
 import socket
 import httplib
 import urllib
@@ -42,6 +43,17 @@ class HttpDispatcher(asyncore.dispatcher):
         asyncore.dispatcher.__init__(self, sock)
         self.response = response
 
+    def writable(self):
+        if self._timeout and self._timeout < time.time():
+            return True
+        return False
+
+    def set_timeout(self, timeout):
+        '''
+        Sets the given timeout for the response dispatcher.
+        '''
+        self._timeout = timeout and (timeout + time.time())
+
     def handle_read(self):
         self.response.begin()
         try:
@@ -50,6 +62,12 @@ class HttpDispatcher(asyncore.dispatcher):
         finally:
             if self.response.will_close:
                 self.response.close()
+
+    def handle_write(self):
+        '''
+        Handles a request timeout for the response dispatcher.
+        '''
+        raise urllib2.URLError((110, 'Connection timed out'))
 
     def handle_error(self):
         error = asyncore.compact_traceback()[2]
@@ -71,8 +89,9 @@ class HttpResponse(httplib.HTTPResponse):
         self._dispatcher = HttpDispatcher(sock, self)
         self.context = None
 
-    def connect(self, context):
+    def connect(self, context, timeout=None):
         self.context = context
+        self._dispatcher.set_timeout(timeout)
 
     def close(self):
         httplib.HTTPResponse.close(self)
@@ -174,6 +193,7 @@ class HttpRequestContext:
     '''
     _handler_classes = [
         urllib2.ProxyHandler,
+        urllib2.HTTPDefaultErrorHandler,
         urllib2.HTTPRedirectHandler,
         HttpHandler,
         HttpsHandler
@@ -205,8 +225,12 @@ class HttpRequestContext:
             self._on_result = on_result
         if on_error:
             self._on_error = on_error
-        self._response = self._opener.open(self._request, timeout=timeout)
-        self._response.connect(self)
+        try:
+            self._response = self._opener.open(self._request)
+        except urllib2.URLError, err:
+            self.on_error(err)
+        else:
+            self._response.connect(self, timeout=timeout)
 
     def on_result(self):
         if self._response is None:
@@ -233,8 +257,6 @@ class HttpRequestContext:
                 self._on_result(result)
 
     def on_error(self, error):
-        if self._response is None:
-            return
         if self._on_error:
             self._on_error(error)
 

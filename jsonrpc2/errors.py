@@ -80,7 +80,7 @@ class JsonRpcInternalError(JsonRpcError):
     def __init__(self, id=None, data=None):
         JsonRpcError.__init__(self, 32603, 'Internal error.', id, data=data)
 
-class JsonRpcInvalidResponseError(JsonRpcError):
+class JsonRpcResponseError(JsonRpcError):
     def __init__(self, id=None, data=None):
         JsonRpcError.__init__(self, 32650, 'Invalid response.', id, data=data)
 
