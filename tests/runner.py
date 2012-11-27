@@ -25,13 +25,17 @@ Provides the Json-RPC2 unit tests runner.
 import os
 import re
 import sys
+import logging
 import unittest
 
 root_dir = os.path.dirname(os.path.abspath(__file__))
 
 sys.path.insert(0, os.path.dirname(root_dir))
 
-import jsonrpc2
+from jsonrpc2 import logger
+
+# Turn off logging
+logger.setup(logging.CRITICAL + 1)
 
 TEST_MODULE_PREFIX = 'test_'
 TEST_MODULE_PATTERN = '(%s.+?)\\.py$' % TEST_MODULE_PREFIX
