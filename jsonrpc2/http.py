@@ -58,6 +58,8 @@ class HttpDispatcher(asyncore.dispatcher):
 
     def handle_read(self):
         logger.debug('Handle available response')
+        # FIXME: Workaround for 'Resource temporarily unavailable' errors
+        time.sleep(0.01)
         self.response.begin()
         try:
             if self.response.context:
