@@ -168,6 +168,8 @@ class JsonRpcRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(data)
             BaseHTTPServer.BaseHTTPRequestHandler.finish(self)
+        except socket.error:
+            logger.exception('Send response error')
         finally:
             sys.exc_traceback = None    # Help garbage collection
 
@@ -238,5 +240,6 @@ class JsonRpcServer(asyncore.dispatcher):
         '''
         Closes the Json-RPC server.
         '''
+        logger.info('Handle close server')
         self.close()
 

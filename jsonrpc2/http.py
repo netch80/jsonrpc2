@@ -28,6 +28,8 @@ import urllib
 import urllib2
 import asyncore
 
+import logger
+
 HTTP_HEADERS = {
     'Content-Type': 'application/json-rpc',
     'User-Agent': 'Python-JsonRPC2'
@@ -55,6 +57,7 @@ class HttpDispatcher(asyncore.dispatcher):
         self._timeout = timeout and (timeout + time.time())
 
     def handle_read(self):
+        logger.debug('Handle available response')
         self.response.begin()
         try:
             if self.response.context:
@@ -67,9 +70,11 @@ class HttpDispatcher(asyncore.dispatcher):
         '''
         Handles a request timeout for the response dispatcher.
         '''
+        logger.warning('Handle response time out')
         raise urllib2.URLError((110, 'Connection timed out'))
 
     def handle_error(self):
+        logger.exception('Handle response error')
         error = asyncore.compact_traceback()[2]
         try:
             if self.response.context:
@@ -105,7 +110,7 @@ class HttpConnectionBase:
     A base class for HTTP connections.
     '''
     response_class = HttpResponse
-    
+
     def getresponse(self):
         '''
         Based on httplib.HTTPConnection.getresponse().
@@ -226,7 +231,7 @@ class HttpRequestContext:
         if on_error:
             self._on_error = on_error
         try:
-            self._response = self._opener.open(self._request)
+            self._response = self._opener.open(self._request, timeout=timeout)
         except urllib2.URLError, err:
             self.on_error(err)
         else:
