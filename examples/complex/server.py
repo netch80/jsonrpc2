@@ -71,7 +71,7 @@ class ComplexIface(JsonRpcIface):
                 'result': x
             }
         self.i = 2
-        self.client = JsonRpcClient('http://localhost:8092')
+        self.client = JsonRpcClient('http://localhost:8092', timeout=5)
         self.client.multiply([x, x], self._on_multiply_result, self.on_error)
 
 

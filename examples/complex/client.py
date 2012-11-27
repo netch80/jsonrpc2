@@ -33,7 +33,7 @@ def on_error(error):
     logging.error('Server error: %s [%s]' % (error, error.data))
 
 def run():
-    client = JsonRpcClient('http://localhost:8082')
+    client = JsonRpcClient('http://localhost:8082', timeout=5)
 
     for i in xrange(-1, 5):
         x = random.choice(xrange(1, 6))
