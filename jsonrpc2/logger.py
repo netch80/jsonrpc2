@@ -25,57 +25,15 @@ import logging
 
 LOG_FORMAT = '%(asctime)s [%(name)s] %(filename)s:%(lineno)d - %(message)s'
 
+LOG_FUNCS = ['debug', 'info', 'warning', 'error', 'exception', 'critical']
+
 _logger = None
 
-def debug(*args, **kwargs):
+def _log(*args, **kwargs):
     '''
-    Logs a message with severity 'DEBUG' on the logger.
+    The fake logging function.
     '''
-    if _logger is None:
-        return
-    _logger.debug(*args, **kwargs)
-
-def info(*args, **kwargs):
-    '''
-    Logs a message with severity 'INFO' on the logger.
-    '''
-    if _logger is None:
-        return
-    _logger.info(*args, **kwargs)
-
-def warning(*args, **kwargs):
-    '''
-    Logs a message with severity 'WARNING' on the logger.
-    '''
-    if _logger is None:
-        return
-    _logger.warning(*args, **kwargs)
-
-def error(*args, **kwargs):
-    '''
-    Logs a message with severity 'ERROR' on the logger.
-    '''
-    if _logger is None:
-        return
-    _logger.error(*args, **kwargs)
-
-def exception(*args, **kwargs):
-    '''
-    Logs a message with severity 'ERROR' on the logger, with current exception
-    information.
-    '''
-    if _logger is None:
-        return
-    _logger.exception(*args, **kwargs)
-
-def critical(*args, **kwargs):
-    '''
-    Logs a message with severity 'CRITICAL' on the logger.
-    '''
-    if _logger is None:
-        return
-    _logger.critical(*args, **kwargs)
-
+    pass
 
 def setup(level=None):
     '''
@@ -95,4 +53,12 @@ def setup(level=None):
     _logger = logging.getLogger('Json-RPC2')
     _logger.addHandler(handler)
     _logger.setLevel(level)
+
+    for name in LOG_FUNCS:
+        globals()[name] = getattr(_logger, name)
+
+
+if _logger is None:
+    for name in LOG_FUNCS:
+        globals()[name] = _log
 
