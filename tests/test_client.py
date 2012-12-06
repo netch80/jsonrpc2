@@ -179,16 +179,17 @@ Content-Length: %d\r
         data = msg.dumps() if hasattr(msg, 'dumps') else base.dumps(msg)
         return self._response_format % (len(data), data)
 
-    def test_call_method(self):
+    def test_request_method(self):
         context = self.client.foo()
         self.assertTrue(isinstance(context, client.JsonRpcContext))
+        self.assertFalse(context.closed())
         base.loop()
         self._assert_message(self._request, base.JsonRpcRequest)
         self.assertEqual(self._request.id, context.request.id)
         self.assertEqual(self._request.method, 'foo')
         self.assertEqual(self._request.params, None)
 
-    def test_call_method_list_params(self):
+    def test_request_method_list_params(self):
         params = ['abc', 123, {'a': 1, 'b': 2, 'c': 3}]
         self.client.foo_list(params)
         base.loop()
@@ -196,7 +197,7 @@ Content-Length: %d\r
         self.assertEqual(self._request.method, 'foo_list')
         self.assertEqual(self._request.params, params)
 
-    def test_call_method_dict_params(self):
+    def test_request_method_dict_params(self):
         params = {'a': 1, 'b': 'def', 'c': [3, 6, 9]}
         self.client.foo_dict(params)
         base.loop()
@@ -204,7 +205,7 @@ Content-Length: %d\r
         self.assertEqual(self._request.method, 'foo_dict')
         self.assertEqual(self._request.params, params)
 
-    def test_call_method_result(self):
+    def test_request_method_result(self):
         def callback(data):
             self._request_callback(data)
             msg = base.JsonRpcResponse(self._request.id, result)
@@ -220,7 +221,7 @@ Content-Length: %d\r
         self._assert_message(self._request, base.JsonRpcRequest)
         self.assertEqual(self._result, result)
 
-    def test_call_method_error(self):
+    def test_request_method_error(self):
         def callback(data):
             self._request_callback(data)
             msg = errors.JsonRpcError(id=self._request.id, **error)
@@ -242,7 +243,7 @@ Content-Length: %d\r
         self.assertEqual(self._result.id, self._request.id)
         self.assertEqual(self._result.marshal()['error'], error)
 
-    def test_call_method_invalid_response_id(self):
+    def test_request_method_invalid_response_id(self):
         def callback(data):
             self._request_callback(data)
             msg = base.JsonRpcResponse('a1b2c3d4', None)
@@ -261,7 +262,7 @@ Content-Length: %d\r
         self.assertEqual(self._result.message, 'Invalid response.')
         self.assertEqual(self._result.data, {'id': 'a1b2c3d4'})
 
-    def test_call_method_http_error(self):
+    def test_request_method_http_error(self):
         def callback(data):
             self._request_callback(data)
             return '''HTTP/1.1 501 Unsupported method ('GET')\r
@@ -282,4 +283,49 @@ Content-Length: 15\r
         self.assertEqual(self._result.code, 501)
         self.assertEqual(self._result.message, "Unsupported method ('GET')")
         self.assertEqual(self._result.data, {'exception': '<html />'})
+
+
+class ClientNotificationTest(ClientTestBase):
+    def _request_callback(self, data):
+        try:
+            self.assertTrue(data.startswith(HTTP_REQ_LINE))
+            self._request = base.loads(data.split('\r\n\r\n')[1],
+                                       [base.JsonRpcNotification])
+        except Exception, err:
+            self._request = err
+
+    def test_notify_method(self):
+        context = self.client.foo.notify()
+        self.assertTrue(isinstance(context, client.JsonRpcContext))
+        self.assertTrue(context.closed())
+        base.loop()
+        self._assert_message(self._request, base.JsonRpcNotification)
+        self.assertEqual(self._request.method, 'foo')
+        self.assertEqual(self._request.params, None)
+
+    def test_notify_method_notifier(self):
+        self.client.notifier = True
+        context = self.client.foo()
+        self.assertTrue(isinstance(context, client.JsonRpcContext))
+        self.assertTrue(context.closed())
+        base.loop()
+        self._assert_message(self._request, base.JsonRpcNotification)
+        self.assertEqual(self._request.method, 'foo')
+        self.assertEqual(self._request.params, None)
+
+    def test_notify_method_list_params(self):
+        params = ['abc', 123, {'a': 1, 'b': 2, 'c': 3}]
+        self.client.foo_list.notify(params)
+        base.loop()
+        self._assert_message(self._request, base.JsonRpcNotification)
+        self.assertEqual(self._request.method, 'foo_list')
+        self.assertEqual(self._request.params, params)
+
+    def test_notify_method_dict_params(self):
+        params = {'a': 1, 'b': 'def', 'c': [3, 6, 9]}
+        self.client.foo_dict.notify(params)
+        base.loop()
+        self._assert_message(self._request, base.JsonRpcNotification)
+        self.assertEqual(self._request.method, 'foo_dict')
+        self.assertEqual(self._request.params, params)
 
