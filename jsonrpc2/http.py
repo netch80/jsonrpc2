@@ -239,6 +239,9 @@ class HttpRequestContext:
         else:
             self._response.connect(self, timeout=timeout)
 
+    def closed(self):
+        return self._response.isclosed() if self._response else True
+
     def on_result(self):
         if self._response is None:
             return

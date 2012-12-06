@@ -26,7 +26,7 @@ import urllib2
 
 import logger
 from http import HttpRequestContext
-from base import loads, JsonRpcRequest, JsonRpcResponse
+from base import loads, JsonRpcNotification, JsonRpcRequest, JsonRpcResponse
 from errors import JsonRpcError, JsonRpcProtocolError, JsonRpcResponseError
 
 __metaclass__ = type
@@ -67,10 +67,10 @@ class JsonRpcContext(HttpRequestContext):
         HttpRequestContext.__init__(self, self.client.url, data,
                                     JsonRpcProcessor(self))
 
-    def call(self, on_result, on_error):
+    def send_request(self, on_result=None, on_error=None):
         self._run(on_result, on_error, timeout=self.client.timeout)
 
-    def notify(self):
+    def send_notification(self):
         self._run(timeout=self.client.timeout)
         self._response.close()
 
@@ -97,7 +97,16 @@ class JsonRpcMethod:
         self.method = method
         self.client = client
 
-    def __call__(self, params=None, on_result=None, on_error=None):
+    def __call__(self, *args, **kwargs):
+        if self.client.notifier:
+            return self.notify(*args, **kwargs)
+        return self.request(*args, **kwargs)
+
+    def notify(self, params=None):
+        notification = JsonRpcNotification(self.method, params)
+        return self.client.notify(notification)
+
+    def request(self, params=None, on_result=None, on_error=None):
         request = JsonRpcRequest(self.method, params)
         return self.client.request(request, on_result, on_error)
 
@@ -109,6 +118,9 @@ class JsonRpcClient:
     #: Default HTTP path
     _http_path = '/RPC2'
 
+    #: Should send notifications by default
+    notifier = False
+
     def __init__(self, url, timeout=None, encoding=None, logging=None):
         self.url = url
         self.timeout = timeout
@@ -118,10 +130,17 @@ class JsonRpcClient:
     def __getattr__(self, method):
         return JsonRpcMethod(method, self)
 
+    def notify(self, notification):
+        logger.debug('Send notification: url=%r, method=%r, parmas=%r'
+                      % (self.url, notification.method, notification.params))
+        context = JsonRpcContext(self, notification)
+        context.send_notification()
+        return context
+
     def request(self, request, on_result=None, on_error=None):
-        logger.debug('Call request: url=%r, method=%r, parmas=%r'
+        logger.debug('Send request: url=%r, method=%r, parmas=%r'
                       % (self.url, request.method, request.params))
         context = JsonRpcContext(self, request)
-        context.call(on_result, on_error)
+        context.send_request(on_result, on_error)
         return context
 

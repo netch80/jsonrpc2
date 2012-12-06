@@ -39,12 +39,11 @@ class JsonRpcIface:
     '''
     A base class for Json-RPC method interfaces.
     '''
-    _handled = False
-
     def __init__(self, server, request, handler):
         self.server = server
         self.request = request
         self._handler = handler
+        self._handled = isinstance(request, JsonRpcNotification)
 
     def __call__(self):
         '''
@@ -154,6 +153,9 @@ class JsonRpcRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             method()
         except Exception, err:
             self.on_error(request, err)
+        else:
+            if isinstance(request, JsonRpcNotification):
+                self.close()
 
     def finish(self, data):
         '''
@@ -167,11 +169,17 @@ class JsonRpcRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.send_header('Content-Length', str(len(data)))
             self.end_headers()
             self.wfile.write(data)
-            BaseHTTPServer.BaseHTTPRequestHandler.finish(self)
+            self.close()
         except socket.error:
             logger.exception('Send response error')
         finally:
             sys.exc_traceback = None    # Help garbage collection
+
+    def close(self):
+        '''
+        Closes a connection to the corresponding client.
+        '''
+        BaseHTTPServer.BaseHTTPRequestHandler.finish(self)
 
     def log_message(self, format, *args):
         logger.debug(format % args)
