@@ -95,11 +95,11 @@ def loads(data, classes=[], encoding=None):
         raise JsonRpcParseError(data=data)
 
 
-def loop():
+def loop(timeout=1, count=None):
     '''
     Runs an asynchronous event loop.
     '''
-    asyncore.loop(timeout=1, use_poll=True)
+    asyncore.loop(timeout=timeout, use_poll=True, count=count)
 
 
 class JsonRpcBase:
