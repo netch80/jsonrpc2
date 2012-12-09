@@ -43,7 +43,6 @@ class JsonRpcIface:
         self.server = server
         self.request = request
         self._handler = handler
-        self._handled = isinstance(request, JsonRpcNotification)
 
     def __call__(self):
         '''
@@ -81,8 +80,6 @@ class JsonRpcIface:
         method to a client.
         '''
         logger.debug('Call request: result=%s' % result)
-        if self._handled:
-            return
         self._handler.on_result(self.request, result)
         self._handled = True
 
@@ -92,8 +89,6 @@ class JsonRpcIface:
         method to a client.
         '''
         logger.debug('Call request: error=%s' % error)
-        if self._handled:
-            return
         self._handler.on_error(self.request, error)
         self._handled = True
 
@@ -153,7 +148,7 @@ class JsonRpcRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             method()
         except Exception, err:
             self.on_error(request, err)
-        else:
+        finally:
             if isinstance(request, JsonRpcNotification):
                 self.close()
 
@@ -185,11 +180,15 @@ class JsonRpcRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         logger.debug(format % args)
 
     def on_result(self, request, result):
+        if isinstance(request, JsonRpcNotification):
+            return
         response = JsonRpcResponse(request.id, result)
         data = response.dumps(encoding=self.server.encoding)
         self.finish(data)
 
     def on_error(self, request, error):
+        if isinstance(request, JsonRpcNotification):
+            return
         if not isinstance(error, JsonRpcError):
             data = {'exception': '%s' % error}
             error = JsonRpcInternalError(data=data)
