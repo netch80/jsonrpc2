@@ -147,6 +147,19 @@ class ServerBasicTest(ServerTestBase):
 
 
 class ServerJsonRpcTest(ServerTestBase):
+    def test_notification(self):
+        client = socket.create_connection(('localhost', self.port), 1)
+        data = '''POST / HTTP/1.1\r
+Content-Length: 67\r
+\r
+{"jsonrpc": "2.0", "method": "test_result", "params": [123, "abc"]}'''
+        client.send(data)
+        base.loop(count=1)
+        resp = httplib.HTTPResponse(client)
+        self.assertRaises(httplib.BadStatusLine, resp.begin)
+        self.assertEqual(self.server.resp_code, None)
+        client.close()
+
     def test_call_method_list_params(self):
         client = socket.create_connection(('localhost', self.port), 1)
         data = '''POST / HTTP/1.1\r
