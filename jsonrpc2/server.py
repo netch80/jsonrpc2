@@ -235,10 +235,12 @@ class JsonRpcServer(asyncore.dispatcher):
         '''
         Runs a handler for a new Json-RPC request.
         '''
-        request, address = self.accept()
-        logger.debug('Handle client: %s:%d' % address)
-        request.settimeout(self.timeout)
-        self.handler_class(request, address, self)
+        accept_result = self.accept()
+        if accept_result is not None:
+            request, address = accept_result
+            logger.debug('Handle client: %s:%d' % address)
+            request.settimeout(self.timeout)
+            self.handler_class(request, address, self)
 
     def handle_error(self):
         logger.exception('Unhandled server error')
@@ -249,4 +251,3 @@ class JsonRpcServer(asyncore.dispatcher):
         '''
         logger.info('Handle close server')
         self.close()
-
