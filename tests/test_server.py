@@ -344,9 +344,8 @@ Content-Length: 85\r
         try:
             resp.begin()
         except httplib.BadStatusLine, err:
-            self.assertEqual(str(err), '')
+            self.assertEqual(str(err), "''")
         else:
             self.assertFalse(True)
         finally:
             client.close()
-
