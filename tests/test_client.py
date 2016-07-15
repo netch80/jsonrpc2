@@ -100,7 +100,7 @@ class ClientBasicTest(ClientTestBase):
         self.assertEqual(self._result.id, self._request.id)
         self.assertEqual(self._result.code, -32650)
         self.assertEqual(self._result.message, 'Invalid response.')
-        self.assertEqual(self._result.data, {'exception': ''})
+        self.assertEqual(self._result.data, {'exception': "''"})
 
     def test_tcp_response_data(self):
         def callback(data):
@@ -328,4 +328,3 @@ class ClientNotificationTest(ClientTestBase):
         self._assert_message(self._request, base.JsonRpcNotification)
         self.assertEqual(self._request.method, 'foo_dict')
         self.assertEqual(self._request.params, params)
-
