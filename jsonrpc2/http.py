@@ -90,6 +90,8 @@ class HttpResponse(httplib.HTTPResponse):
     '''
     A class of asynchronous HTTP responses.
     '''
+    usecount = 1
+
     def __init__(self, sock, method=None):
         httplib.HTTPResponse.__init__(self, sock, debuglevel=0,
                                       strict=1, method=method)
@@ -103,6 +105,15 @@ class HttpResponse(httplib.HTTPResponse):
     def close(self):
         httplib.HTTPResponse.close(self)
         self._dispatcher.close()
+
+    def _reuse(self):
+        self.usecount += 1
+
+    def _drop(self, space):
+        self.usecount -= 1
+        if self.usecount > 0:
+            return
+        self.close()
 
     recv = httplib.HTTPResponse.read
 
@@ -205,7 +216,7 @@ class HttpRequestContext:
         HttpHandler,
         HttpsHandler
     ]
-    
+
     def __init__(self, url, data, handler=None):
         self._request = urllib2.Request(url, data, HTTP_HEADERS)
         self._response = None
