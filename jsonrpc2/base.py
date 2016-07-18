@@ -30,7 +30,7 @@ import logger
 from errors import JsonRpcError, JsonRpcParseError, InvalidJsonRpcError
 
 # The version number
-VERSION = '0.2.2'
+VERSION = '0.2.3'
 
 # Json-RPC specification version
 SPEC_VER = '2.0'
