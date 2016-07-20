@@ -54,6 +54,7 @@ class TestServer(asyncore.dispatcher):
             data = self._callback(data)
             if data:
                 sock.send(data)
+        sock.close()
         self.close()
 
 
