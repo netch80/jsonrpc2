@@ -150,6 +150,7 @@ class JsonRpcRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.on_error(request, err)
         finally:
             if isinstance(request, JsonRpcNotification):
+                self.request.close()
                 self.close()
 
     def finish(self, data):
@@ -169,6 +170,10 @@ class JsonRpcRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             logger.exception('Send response error')
         finally:
             sys.exc_traceback = None    # Help garbage collection
+            try:
+                self.request.close()
+            except Exception:
+                pass
 
     def close(self):
         '''

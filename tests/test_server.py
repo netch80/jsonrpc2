@@ -56,11 +56,13 @@ class TestHandler(server.JsonRpcRequestHandler):
         self.server.resp_code = code
         server.JsonRpcRequestHandler.send_error(self, code, message)
         self.server.close()
+        self.request.close()
 
     def send_response(self, code, message=None):
         self.server.resp_code = code
         server.JsonRpcRequestHandler.send_response(self, code, message)
         self.server.close()
+        self.request.close()
 
 
 class ServerTestBase(unittest.TestCase):
