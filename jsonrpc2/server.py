@@ -206,11 +206,12 @@ class JsonRpcServer(asyncore.dispatcher):
     handler_class = JsonRpcRequestHandler
 
     def __init__(self, address, interface, timeout=None,
-                       encoding=None, logging=None):
+                       encoding=None, logging=None, allowed_ips=None):
         if (not isinstance(interface, type) or
             not issubclass(interface, JsonRpcIface)):
             raise TypeError('Interface must be JsonRpcIface subclass')
 
+        self.allowed_ips = allowed_ips
         self.interface = interface
         self.timeout = timeout
         self.encoding = encoding or 'utf-8'
@@ -238,9 +239,13 @@ class JsonRpcServer(asyncore.dispatcher):
         accept_result = self.accept()
         if accept_result is not None:
             request, address = accept_result
-            logger.debug('Handle client: %s:%d' % address)
-            request.settimeout(self.timeout)
-            self.handler_class(request, address, self)
+            if self.allowed_ips is None or address[0] in self.allowed_ips:
+                logger.debug('Handle client: %s:%d' % address)
+                request.settimeout(self.timeout)
+                self.handler_class(request, address, self)
+            else:
+                logger.debug('Rejecting connection from: %s:%d' % address)
+                request.close()
 
     def handle_error(self):
         logger.exception('Unhandled server error')
