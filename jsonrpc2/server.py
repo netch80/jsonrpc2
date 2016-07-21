@@ -48,33 +48,35 @@ class JsonRpcIface:
         '''
         Calls an interface method from the current request.
         '''
-        method = getattr(self, self.request.method, None)
+        method_name = self.request.method
+        params = self.request.params
+        method = getattr(self, method_name, None)
         logger.debug('Call request: method=%s, params=%s'
-                      % (method, self.request.params))
+                      % (method_name, params))
         try:
-            if not callable(method):
-                data = {'method': self.request.method}
+            if not callable(method) or method_name.startswith('_'):
+                data = {'method': method_name}
                 raise JsonRpcMethodNotFoundError(data=data)
 
-            args, kwargs = [], self.request.params
-            if isinstance(self.request.params, (list, tuple)):
-                args, kwargs = self.request.params, {}
+            args, kwargs = [], params
+            if isinstance(params, (list, tuple)):
+                args, kwargs = params, {}
 
             try:
                 result = method(*args, **kwargs)
             except TypeError:
                 data = {
-                    'method': self.request.method,
-                    'params': self.request.params
+                    'method': method_name,
+                    'params': params
                 }
                 raise JsonRpcInvalidParamsError(data=data)
         except Exception, err:
-            self.on_error(err)
+            self._on_error(err)
         else:
             if result is not None:
-                self.on_result(result)
+                self._on_result(result)
 
-    def on_result(self, result):
+    def _on_result(self, result):
         '''
         A callback method that dispatches the given result of a requested
         method to a client.
@@ -83,7 +85,7 @@ class JsonRpcIface:
         self._handler.on_result(self.request, result)
         self._handled = True
 
-    def on_error(self, error):
+    def _on_error(self, error):
         '''
         A callback method that dispatches the given error of a requested
         method to a client.

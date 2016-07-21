@@ -38,14 +38,14 @@ class TestIface(server.JsonRpcIface):
                 'params': {'a': a, 'b': b}}
 
     def test_on_result(self, a, b):
-        self.on_result({'status': 'OK',
+        self._on_result({'status': 'OK',
                         'params': {'a': a, 'b': b}})
 
     def test_exception(self, a):
         raise Exception(str(a))
 
     def test_on_error(self, a):
-        self.on_error(Exception(str(a)))
+        self._on_error(Exception(str(a)))
 
 
 class TestHandler(server.JsonRpcRequestHandler):
@@ -219,6 +219,26 @@ Content-Length: 102\r
             self.assertEqual(err.code, -32601)
             self.assertEqual(err.message, 'Method not found.')
             self.assertEqual(err.data, {'method': 'method_not_found'})
+
+    def test_call_private_method_not_found(self):
+        client = socket.create_connection(('localhost', self.port), 1)
+        data = '''POST / HTTP/1.1\r
+Content-Length: 96\r
+\r
+{"jsonrpc": "2.0", "id": "12345abc", "method": "_on_result", "params": {"a": "abc", "b": "efg"}}'''
+        client.send(data)
+        base.loop()
+        resp = httplib.HTTPResponse(client)
+        resp.begin()
+        data = resp.read()
+        client.close()
+        self.assertEqual(self.server.resp_code, 200)
+        try:
+            base.loads(data, [base.JsonRpcResponse])
+        except errors.JsonRpcError, err:
+            self.assertEqual(err.code, -32601)
+            self.assertEqual(err.message, 'Method not found.')
+            self.assertEqual(err.data, {'method': '_on_result'})
 
     def test_call_invalid_list_params(self):
         client = socket.create_connection(('localhost', self.port), 1)

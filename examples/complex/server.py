@@ -46,9 +46,9 @@ class ComplexIface(JsonRpcIface):
         if self.i < self.n:
             self.i += 1
             self.client.multiply([result, self.x],
-                                 self._on_multiply_result, self.on_error)
+                                 self._on_multiply_result, self._on_error)
         else:
-            self.on_result({'x': self.x, 'n': self.n, 'result': result})
+            self._on_result({'x': self.x, 'n': self.n, 'result': result})
 
     def power(self, x, n):
         logging.info('Power: %s ^ %s' % (x, n))
@@ -72,7 +72,7 @@ class ComplexIface(JsonRpcIface):
             }
         self.i = 2
         self.client = JsonRpcClient('http://localhost:8092', timeout=5)
-        self.client.multiply([x, x], self._on_multiply_result, self.on_error)
+        self.client.multiply([x, x], self._on_multiply_result, self._on_error)
 
 
 def run():
