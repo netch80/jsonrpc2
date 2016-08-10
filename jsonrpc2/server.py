@@ -21,17 +21,16 @@
 Definitions of Json-RPC server side classes.
 '''
 
-import sys
+import time
+import email
 import socket
 import asyncore
-import BaseHTTPServer
 
 import logger
 from base import dumps, loads, VERSION, \
                  JsonRpcNotification, JsonRpcRequest, JsonRpcResponse
 from errors import JsonRpcError, JsonRpcInternalError, \
                    JsonRpcMethodNotFoundError, JsonRpcInvalidParamsError
-from http import HTTP_HEADERS
 
 __metaclass__ = type
 
@@ -95,7 +94,14 @@ class JsonRpcIface:
         self._handled = True
 
 
-class JsonRpcRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+class ParsingHTTPError(Exception):
+    def __init__(self, code, message):
+        Exception.__init__(self, (code, message))
+        self.code = code
+        self.message = message
+
+
+class JsonRpcRequestHandler(asyncore.dispatcher):
     '''
     A class of Json-RPC request handlers.
     '''
@@ -105,46 +111,53 @@ class JsonRpcRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     # The supported version of the HTTP protocol
     protocol_version = 'HTTP/1.1'
 
-    # The default request version
-    default_request_version = 'HTTP/1.1'
-
-    def __init__(self, request, address, server):
-        self.request = request
-        self.client_address = address
+    def __init__(self, sock, server, timeout=5):
+        asyncore.dispatcher.__init__(self, sock)
         self.server = server
+        self.path = '/'
+        self.data = ''
+        self._readable = True
+        self._writable = False
+        self.read_buffer = ''
+        self.write_buffer = ''
+        self.timeout = time.time() + timeout
+        self.content_len = None
 
-        self.setup()
-        self.handle()
+    def readable(self):
+        return self._readable
 
-    def handle(self):
-        '''
-        Handles an Json-RPC request.
-        '''
-        self.command = None
-        self.requestline = ''
-        self.request_version = self.default_request_version
-        self.close_connection = 1
+    def writable(self):
+        return self._writable or self.timeout < time.time()
 
-        try:
-            self.raw_requestline = self.rfile.readline()
-            if not self.raw_requestline:
+    def handle_read(self):
+        if self.content_len is None:
+            self.read_buffer += self.recv(8192)
+
+            try:
+                if not self.parse_http_request(self.read_buffer):
+                    # Failed to parse headers. Wait for next portion.
+                    return
+            except ParsingHTTPError as err:
+                self._readable = False
+                self.send_http_error(err.code, err.message)
                 return
-
-            if not self.parse_request():
+            except Exception as err:
+                self.log_message('Exception: %s', err)
+                self._readable = False
+                self.send_http_error(500, 'Internal Server Error')
                 return
+        else:
+            self.data += self.recv(8192)
 
-            if self.command != 'POST':
-                self.send_error(501, 'Unsupported method (%r)' % self.command)
-                return
-
-            data = self.rfile.read(int(self.headers.get('content-length', 0)))
-        except socket.timeout:
-            self.send_error(408, 'Request timed out')
+        if len(self.data) < self.content_len:
             return
+        elif len(self.data) > self.content_len:
+            self.data = self.data[:self.content_len]
 
+        self._readable = False
         request = None
         try:
-            request = loads(data, [JsonRpcNotification, JsonRpcRequest],
+            request = loads(self.data, [JsonRpcNotification, JsonRpcRequest],
                             encoding=self.server.encoding)
             method = self.server.interface(self.server, request, self)
             method()
@@ -152,36 +165,18 @@ class JsonRpcRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.on_error(request, err)
         finally:
             if isinstance(request, JsonRpcNotification):
-                self.request.close()
                 self.close()
 
-    def finish(self, data):
-        '''
-        Finishes handling an Json-RPC request by sending a response to
-        the corresponding client.
-        '''
-        try:
-            self.send_response(200)
-            for key, value in HTTP_HEADERS.iteritems():
-                self.send_header(key, value)
-            self.send_header('Content-Length', str(len(data)))
-            self.end_headers()
-            self.wfile.write(data)
+    def handle_write(self):
+        if not self._writable:
+            # Triggered by timeout.
+            self.write_buffer = ''
+            self.send_http_error(408, 'Request timed out')
+        num_sent = 0
+        num_sent = asyncore.dispatcher.send(self, self.write_buffer)
+        self.write_buffer = self.write_buffer[num_sent:]
+        if not self.write_buffer:
             self.close()
-        except socket.error:
-            logger.exception('Send response error')
-        finally:
-            sys.exc_traceback = None    # Help garbage collection
-            try:
-                self.request.close()
-            except Exception:
-                pass
-
-    def close(self):
-        '''
-        Closes a connection to the corresponding client.
-        '''
-        BaseHTTPServer.BaseHTTPRequestHandler.finish(self)
 
     def log_message(self, format, *args):
         logger.debug(format % args)
@@ -191,7 +186,7 @@ class JsonRpcRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             return
         response = JsonRpcResponse(request.id, result)
         data = response.dumps(encoding=self.server.encoding)
-        self.finish(data)
+        self.send_http_result(data)
 
     def on_error(self, request, error):
         if isinstance(request, JsonRpcNotification):
@@ -202,7 +197,85 @@ class JsonRpcRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         if request:
             error.id = request.id
         data = dumps(error.marshal(), encoding=self.server.encoding)
-        self.finish(data)
+        self.send_http_result(data)
+
+    def parse_http_request(self, request_string):
+        if not request_string:
+            return False
+
+        parts = request_string.split('\r\n', 1)
+        words = parts[0].split()
+        if not words:
+            return False
+
+        if len(words) != 3:
+            raise ParsingHTTPError(400, 'Bad request syntax')
+
+        command, self.path, version = words
+        if version not in ('HTTP/1.0', 'HTTP/1.1'):
+            raise ParsingHTTPError(400, 'Bad request version')
+
+        self.protocol_version = version
+        if command != 'POST':
+            raise ParsingHTTPError(501, 'Unsupported method')
+
+        if len(parts) < 2:
+            return False
+
+        parts = parts[1].split('\r\n\r\n')
+
+        if len(parts) < 2:
+            return False
+
+        self.headers = email.message_from_string(parts[0])
+
+        self.content_len = int(self.headers.get('content-length', 0))
+        self.data = parts[1]
+        return True
+
+    def send_http_result(self, data):
+        self.add_base_response(200, 'OK')
+        self.add_content(data, 'application/json-rpc')
+        self.log_message('"%s" %s %s', self.path, '200', str(len(data)))
+        self._writable = True
+
+    def send_http_error(self, code, message):
+        self.add_base_response(code, message)
+
+        content = ("<head><title>Error response</title></head>"
+                   "<body>"
+                   "<h1>Error response</h1>"
+                   "<p>Error code %(code)d.</p>"
+                   "<p>Message: %(message)s.</p>"
+                   "</body>") % {
+            'code': code,
+            'message': message
+        }
+
+        self.add_content(content, 'text/html')
+        self.log_message('"%s" %s %s', self.path, code, str(len(content)))
+        self._writable = True
+
+    def add_base_response(self, code, message):
+        self.write_buffer += "%s %d %s\r\n" % \
+                             (self.protocol_version, code, message)
+        self.add_header('Server', self.server_version)
+        self.add_header('User-Agent', 'Python-JsonRPC2')
+        self.add_header(
+            'Date', time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime()))
+        self.add_header('Connection', 'close')
+
+    def add_header(self, keyword, value):
+        self.write_buffer += "%s: %s\r\n" % (keyword, value)
+
+    def add_content(self, content='', content_type=''):
+        if content_type:
+            self.add_header("Content-Type", content_type)
+
+        if content:
+            self.add_header('Content-Length', str(len(content)))
+
+        self.write_buffer += "\r\n%s" % content
 
 
 class JsonRpcServer(asyncore.dispatcher):
@@ -212,7 +285,7 @@ class JsonRpcServer(asyncore.dispatcher):
     #: A class of Json-RPC request handlers
     handler_class = JsonRpcRequestHandler
 
-    def __init__(self, address, interface, timeout=None,
+    def __init__(self, address, interface, timeout=5,
                        encoding=None, logging=None, allowed_ips=None):
         if (not isinstance(interface, type) or
             not issubclass(interface, JsonRpcIface)):
@@ -246,14 +319,13 @@ class JsonRpcServer(asyncore.dispatcher):
         '''
         accept_result = self.accept()
         if accept_result is not None:
-            request, address = accept_result
+            sock, address = accept_result
             if self.allowed_ips is None or address[0] in self.allowed_ips:
                 logger.debug('Handle client: %s:%d' % address)
-                request.settimeout(self.timeout)
-                self.handler_class(request, address, self)
+                self.handler_class(sock, self, timeout=self.timeout)
             else:
                 logger.debug('Rejecting connection from: %s:%d' % address)
-                request.close()
+                sock.close()
 
     def handle_error(self):
         logger.exception('Unhandled server error')
