@@ -25,7 +25,6 @@ import json
 import random
 import socket
 import httplib
-import urllib2
 import asyncore
 import unittest
 

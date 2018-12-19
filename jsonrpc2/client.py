@@ -22,7 +22,8 @@ Definitions of Json-RPC client side classes.
 '''
 
 import json
-import urllib2
+import six.moves.urllib.request as urllib_request
+import six.moves.urllib.error as urllib_error
 
 from . import logger
 from .http import HttpRequestContext
@@ -31,7 +32,7 @@ from .errors import JsonRpcError, JsonRpcProtocolError, JsonRpcResponseError
 
 __metaclass__ = type
 
-class JsonRpcProcessor(urllib2.BaseHandler):
+class JsonRpcProcessor(urllib_request.BaseHandler):
     '''
     A class of Json-RPC response processors.
     '''
@@ -75,7 +76,7 @@ class JsonRpcContext(HttpRequestContext):
         self._response.close()
 
     def on_error(self, error):
-        if isinstance(error, urllib2.URLError):
+        if isinstance(error, urllib_error.URLError):
             code = 400
             message = str(error.reason)
             try:

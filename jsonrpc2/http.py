@@ -24,8 +24,9 @@ Definitions of HTTP helper classes for Json-RPC client side.
 import time
 import socket
 import httplib
-import urllib
-import urllib2
+import six.moves.urllib.request as urllib_request
+import six.moves.urllib.response as urllib_response
+import six.moves.urllib.error as urllib_error
 import asyncore
 
 from . import logger
@@ -73,7 +74,7 @@ class HttpDispatcher(asyncore.dispatcher):
         Handles a request timeout for the response dispatcher.
         '''
         logger.warning('Handle response time out')
-        raise urllib2.URLError((110, 'Connection timed out'))
+        raise urllib_error.URLError((110, 'Connection timed out'))
 
     def handle_error(self):
         logger.exception('Handle response error')
@@ -153,7 +154,7 @@ class HttpHandlerBase:
         '''
         host = request.get_host()
         if not host:
-            raise urllib2.URLError('no host given')
+            raise urllib_error.URLError('no host given')
 
         connection = connection_class(host, timeout=request.timeout)
         connection.set_debuglevel(self._debuglevel)
@@ -183,23 +184,23 @@ class HttpHandlerBase:
             connection.request(request.get_method(), request.get_selector(),
                                request.data, headers)
         except socket.error as err: # XXX what error?
-            raise urllib2.URLError(err)
+            raise urllib_error.URLError(err)
         return connection.getresponse()
 
-class HttpHandler(HttpHandlerBase, urllib2.HTTPHandler):
+class HttpHandler(HttpHandlerBase, urllib_request.HTTPHandler):
     '''
     A class of asynchronous HTTP request handlers.
     '''
-    __init__ = urllib2.HTTPHandler.__init__
+    __init__ = urllib_request.HTTPHandler.__init__
 
     def http_open(self, request):
         return self.do_open(HttpConnection, request)
 
-class HttpsHandler(HttpHandlerBase, urllib2.HTTPSHandler):
+class HttpsHandler(HttpHandlerBase, urllib_request.HTTPSHandler):
     '''
     A class of asynchronous HTTPS request handlers.
     '''
-    __init__ = urllib2.HTTPSHandler.__init__
+    __init__ = urllib_request.HTTPSHandler.__init__
 
     def https_open(self, request):
         return self.do_open(HttpsConnection, request)
@@ -210,20 +211,20 @@ class HttpRequestContext:
     A class of HTTP request contexts.
     '''
     _handler_classes = [
-        urllib2.ProxyHandler,
-        urllib2.HTTPDefaultErrorHandler,
-        urllib2.HTTPRedirectHandler,
+        urllib_request.ProxyHandler,
+        urllib_request.HTTPDefaultErrorHandler,
+        urllib_request.HTTPRedirectHandler,
         HttpHandler,
         HttpsHandler
     ]
 
     def __init__(self, url, data, handler=None):
-        self._request = urllib2.Request(url, data, HTTP_HEADERS)
+        self._request = urllib_request.Request(url, data, HTTP_HEADERS)
         self._response = None
         self._on_result = None
         self._on_error = None
         # Connection opener
-        self._opener = urllib2.OpenerDirector()
+        self._opener = urllib_request.OpenerDirector()
         self._processors = {}
         self._setup_opener(handler)
 
@@ -245,7 +246,7 @@ class HttpRequestContext:
             self._on_error = on_error
         try:
             self._response = self._opener.open(self._request, timeout=timeout)
-        except urllib2.URLError as err:
+        except urllib_error.URLError as err:
             self.on_error(err)
         else:
             self._response.connect(self, timeout=timeout)
@@ -257,7 +258,7 @@ class HttpRequestContext:
         if self._response is None:
             return
         fp = socket._fileobject(self._response, close=True)
-        result = urllib.addinfourl(fp, self._response.msg,
+        result = urllib_response.addinfourl(fp, self._response.msg,
                                    self._request.get_full_url())
         result.code = self._response.status
         result.msg = self._response.reason
