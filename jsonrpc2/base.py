@@ -58,7 +58,7 @@ def dumps(message, encoding=None):
     message['jsonrpc'] = SPEC_VER
     try:
         return json.dumps(message, encoding=encoding)
-    except TypeError, err:
+    except TypeError as err:
         data = {'exception': '%s' % err}
         raise JsonRpcParseError(data=data)
 
@@ -75,7 +75,7 @@ def loads(data, classes=[], encoding=None):
         encoding = 'utf-8'
     try:
         message = json.loads(data, encoding=encoding)
-    except ValueError, err:
+    except ValueError as err:
         data = {'exception': '%s' % err}
         raise JsonRpcParseError(data=data)
     # Basic JSON-RPC validation
@@ -90,7 +90,7 @@ def loads(data, classes=[], encoding=None):
             pass
     try:
         raise JsonRpcError(id=message['id'], **message['error'])
-    except (TypeError, KeyError), err:
+    except (TypeError, KeyError) as err:
         data = {'exception': '%s' % err}
         raise JsonRpcParseError(data=data)
 

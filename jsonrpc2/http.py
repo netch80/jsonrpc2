@@ -182,7 +182,7 @@ class HttpHandlerBase:
         try:
             connection.request(request.get_method(), request.get_selector(),
                                request.data, headers)
-        except socket.error, err: # XXX what error?
+        except socket.error as err: # XXX what error?
             raise urllib2.URLError(err)
         return connection.getresponse()
 
@@ -245,7 +245,7 @@ class HttpRequestContext:
             self._on_error = on_error
         try:
             self._response = self._opener.open(self._request, timeout=timeout)
-        except urllib2.URLError, err:
+        except urllib2.URLError as err:
             self.on_error(err)
         else:
             self._response.connect(self, timeout=timeout)
@@ -271,7 +271,7 @@ class HttpRequestContext:
                 result = method(self.request, result)
                 if result:
                     break
-        except Exception, err:
+        except Exception as err:
             self.on_error(err)
         else:
             if self._on_result:

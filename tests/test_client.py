@@ -75,7 +75,7 @@ class ClientTestBase(unittest.TestCase):
             self.assertTrue(data.startswith(HTTP_REQ_LINE))
             self._request = base.loads(data.split('\r\n\r\n')[1],
                                        [base.JsonRpcRequest])
-        except Exception, err:
+        except Exception as err:
             self._request = err
 
     def _assert_message(self, msg, msg_type=base.JsonRpcRequest):
@@ -292,7 +292,7 @@ class ClientNotificationTest(ClientTestBase):
             self.assertTrue(data.startswith(HTTP_REQ_LINE))
             self._request = base.loads(data.split('\r\n\r\n')[1],
                                        [base.JsonRpcNotification])
-        except Exception, err:
+        except Exception as err:
             self._request = err
 
     def test_notify_method(self):

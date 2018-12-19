@@ -69,7 +69,7 @@ class JsonRpcIface:
                     'params': params
                 }
                 raise JsonRpcInvalidParamsError(data=data)
-        except Exception, err:
+        except Exception as err:
             self._on_error(err)
         else:
             if result is not None:
@@ -161,7 +161,7 @@ class JsonRpcRequestHandler(asyncore.dispatcher):
                             encoding=self.server.encoding)
             method = self.server.interface(self.server, request, self)
             method()
-        except Exception, err:
+        except Exception as err:
             self.on_error(request, err)
         finally:
             if isinstance(request, JsonRpcNotification):

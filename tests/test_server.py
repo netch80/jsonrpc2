@@ -77,7 +77,7 @@ class ServerBasicTest(ServerTestBase):
         try:
             server.JsonRpcServer(('localhost', self.port + 1),
                                  base.JsonRpcBase)
-        except TypeError, err:
+        except TypeError as err:
             self.assertEqual(str(err), 'Interface must be JsonRpcIface subclass')
         else:
             self.assertFalse(True)
@@ -114,7 +114,7 @@ class ServerBasicTest(ServerTestBase):
         self.assertEqual(self.server.resp_code, 200)
         try:
             base.loads(data)
-        except errors.JsonRpcError, err:
+        except errors.JsonRpcError as err:
             self.assertEqual(err.code, -32700)
             self.assertEqual(err.message, 'Parse error.')
 
@@ -138,7 +138,7 @@ class ServerBasicTest(ServerTestBase):
         self.assertEqual(self.server.resp_code, 200)
         try:
             base.loads(data)
-        except errors.JsonRpcError, err:
+        except errors.JsonRpcError as err:
             self.assertEqual(err.code, -32700)
             self.assertEqual(err.message, 'Parse error.')
 
@@ -210,7 +210,7 @@ Content-Length: 102\r
         self.assertEqual(self.server.resp_code, 200)
         try:
             base.loads(data, [base.JsonRpcResponse])
-        except errors.JsonRpcError, err:
+        except errors.JsonRpcError as err:
             self.assertEqual(err.code, -32601)
             self.assertEqual(err.message, 'Method not found.')
             self.assertEqual(err.data, {'method': 'method_not_found'})
@@ -230,7 +230,7 @@ Content-Length: 96\r
         self.assertEqual(self.server.resp_code, 200)
         try:
             base.loads(data, [base.JsonRpcResponse])
-        except errors.JsonRpcError, err:
+        except errors.JsonRpcError as err:
             self.assertEqual(err.code, -32601)
             self.assertEqual(err.message, 'Method not found.')
             self.assertEqual(err.data, {'method': '_on_result'})
@@ -250,7 +250,7 @@ Content-Length: 91\r
         self.assertEqual(self.server.resp_code, 200)
         try:
             base.loads(data, [base.JsonRpcResponse])
-        except errors.JsonRpcError, err:
+        except errors.JsonRpcError as err:
             self.assertEqual(err.code, -32602)
             self.assertEqual(err.message, 'Invalid params.')
             self.assertEqual(err.data, {'method': 'test_result',
@@ -271,7 +271,7 @@ Content-Length: 106\r
         self.assertEqual(self.server.resp_code, 200)
         try:
             base.loads(data, [base.JsonRpcResponse])
-        except errors.JsonRpcError, err:
+        except errors.JsonRpcError as err:
             self.assertEqual(err.code, -32602)
             self.assertEqual(err.message, 'Invalid params.')
             self.assertEqual(err.data, {'method': 'test_result',
@@ -311,7 +311,7 @@ Content-Length: 83\r
         self.assertEqual(self.server.resp_code, 200)
         try:
             base.loads(data, [base.JsonRpcResponse])
-        except errors.JsonRpcError, err:
+        except errors.JsonRpcError as err:
             self.assertEqual(err.code, -32603)
             self.assertEqual(err.message, 'Internal error.')
             self.assertEqual(err.data, {'exception': 'abc'})
@@ -331,7 +331,7 @@ Content-Length: 82\r
         self.assertEqual(self.server.resp_code, 200)
         try:
             base.loads(data, [base.JsonRpcResponse])
-        except errors.JsonRpcError, err:
+        except errors.JsonRpcError as err:
             self.assertEqual(err.code, -32603)
             self.assertEqual(err.message, 'Internal error.')
             self.assertEqual(err.data, {'exception': 'efg'})
@@ -360,7 +360,7 @@ Content-Length: 85\r
         resp = httplib.HTTPResponse(client)
         try:
             resp.begin()
-        except httplib.BadStatusLine, err:
+        except httplib.BadStatusLine as err:
             self.assertEqual(str(err), "''")
         else:
             self.assertFalse(True)
