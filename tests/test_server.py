@@ -23,8 +23,8 @@ Provides unit tests for the Json-RPC2 server.py module.
 
 import random
 import socket
-import httplib
 import unittest
+import six.moves.http_client as http_client
 
 from jsonrpc2 import base
 from jsonrpc2 import server
@@ -107,7 +107,7 @@ class ServerBasicTest(ServerTestBase):
         data = 'POST / HTTP/1.1\r\nContent-Length: 0\r\n\r\n'
         client.send(data)
         base.loop(count=3)
-        resp = httplib.HTTPResponse(client)
+        resp = http_client.HTTPResponse(client)
         resp.begin()
         data = resp.read()
         client.close()
@@ -131,7 +131,7 @@ class ServerBasicTest(ServerTestBase):
         data = 'POST / HTTP/1.1\r\nContent-Length: 14\r\n\r\nTest text data'
         client.send(data)
         base.loop(count=3)
-        resp = httplib.HTTPResponse(client)
+        resp = http_client.HTTPResponse(client)
         resp.begin()
         data = resp.read()
         client.close()
@@ -152,8 +152,8 @@ Content-Length: 67\r
 {"jsonrpc": "2.0", "method": "test_result", "params": [123, "abc"]}'''
         client.send(data)
         base.loop(count=3)
-        resp = httplib.HTTPResponse(client)
-        self.assertRaises(httplib.BadStatusLine, resp.begin)
+        resp = http_client.HTTPResponse(client)
+        self.assertRaises(http_client.BadStatusLine, resp.begin)
         self.assertEqual(self.server.resp_code, None)
         client.close()
 
@@ -165,7 +165,7 @@ Content-Length: 85\r
 {"jsonrpc": "2.0", "id": "12345abc", "method": "test_result", "params": [123, "abc"]}'''
         client.send(data)
         base.loop(count=3)
-        resp = httplib.HTTPResponse(client)
+        resp = http_client.HTTPResponse(client)
         resp.begin()
         data = resp.read()
         client.close()
@@ -184,7 +184,7 @@ Content-Length: 85\r
 {"jsonrpc": "2.0", "id": "12345abc", "method": "test_result", "params": {"a": "abc"}}'''
         client.send(data)
         base.loop(count=3)
-        resp = httplib.HTTPResponse(client)
+        resp = http_client.HTTPResponse(client)
         resp.begin()
         data = resp.read()
         client.close()
@@ -203,7 +203,7 @@ Content-Length: 102\r
 {"jsonrpc": "2.0", "id": "12345abc", "method": "method_not_found", "params": {"a": "abc", "b": "efg"}}'''
         client.send(data)
         base.loop(count=3)
-        resp = httplib.HTTPResponse(client)
+        resp = http_client.HTTPResponse(client)
         resp.begin()
         data = resp.read()
         client.close()
@@ -223,7 +223,7 @@ Content-Length: 96\r
 {"jsonrpc": "2.0", "id": "12345abc", "method": "_on_result", "params": {"a": "abc", "b": "efg"}}'''
         client.send(data)
         base.loop(count=3)
-        resp = httplib.HTTPResponse(client)
+        resp = http_client.HTTPResponse(client)
         resp.begin()
         data = resp.read()
         client.close()
@@ -243,7 +243,7 @@ Content-Length: 91\r
 {"jsonrpc": "2.0", "id": "12345abc", "method": "test_result", "params": [123, "abc", true]}'''
         client.send(data)
         base.loop(count=3)
-        resp = httplib.HTTPResponse(client)
+        resp = http_client.HTTPResponse(client)
         resp.begin()
         data = resp.read()
         client.close()
@@ -264,7 +264,7 @@ Content-Length: 106\r
 {"jsonrpc": "2.0", "id": "12345abc", "method": "test_result", "params": {"a": 123, "b": "abc", "c": true}}'''
         client.send(data)
         base.loop(count=3)
-        resp = httplib.HTTPResponse(client)
+        resp = http_client.HTTPResponse(client)
         resp.begin()
         data = resp.read()
         client.close()
@@ -285,7 +285,7 @@ Content-Length: 88\r
 {"jsonrpc": "2.0", "id": "12345abc", "method": "test_on_result", "params": [123, "abc"]}'''
         client.send(data)
         base.loop(count=3)
-        resp = httplib.HTTPResponse(client)
+        resp = http_client.HTTPResponse(client)
         resp.begin()
         data = resp.read()
         client.close()
@@ -304,7 +304,7 @@ Content-Length: 83\r
 {"jsonrpc": "2.0", "id": "12345abc", "method": "test_exception", "params": ["abc"]}'''
         client.send(data)
         base.loop(count=3)
-        resp = httplib.HTTPResponse(client)
+        resp = http_client.HTTPResponse(client)
         resp.begin()
         data = resp.read()
         client.close()
@@ -324,7 +324,7 @@ Content-Length: 82\r
 {"jsonrpc": "2.0", "id": "12345abc", "method": "test_on_error", "params": ["efg"]}'''
         client.send(data)
         base.loop(count=3)
-        resp = httplib.HTTPResponse(client)
+        resp = http_client.HTTPResponse(client)
         resp.begin()
         data = resp.read()
         client.close()
@@ -347,7 +347,7 @@ Content-Length: 85\r
         client.send(data)
         base.loop(count=3)
         # First
-        resp = httplib.HTTPResponse(client)
+        resp = http_client.HTTPResponse(client)
         resp.begin()
         data = resp.read()
         self.assertEqual(self.server.resp_code, 200)
@@ -357,10 +357,10 @@ Content-Length: 85\r
         self.assertEqual(response.result, {'status': 'OK',
                                            'params': {'a': 123, 'b': 'abc'}})
         # Second...
-        resp = httplib.HTTPResponse(client)
+        resp = http_client.HTTPResponse(client)
         try:
             resp.begin()
-        except httplib.BadStatusLine as err:
+        except http_client.BadStatusLine as err:
             self.assertEqual(str(err), "''")
         else:
             self.assertFalse(True)

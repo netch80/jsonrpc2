@@ -23,11 +23,12 @@ Definitions of HTTP helper classes for Json-RPC client side.
 
 import time
 import socket
-import httplib
+import asyncore
+from six import PY3
+import six.moves.http_client as http_client
 import six.moves.urllib.request as urllib_request
 import six.moves.urllib.response as urllib_response
 import six.moves.urllib.error as urllib_error
-import asyncore
 
 from . import logger
 
@@ -87,15 +88,15 @@ class HttpDispatcher(asyncore.dispatcher):
                 self.response.close()
 
 
-class HttpResponse(httplib.HTTPResponse):
+class HttpResponse(http_client.HTTPResponse):
     '''
     A class of asynchronous HTTP responses.
     '''
     usecount = 1
 
     def __init__(self, sock, method=None):
-        httplib.HTTPResponse.__init__(self, sock, debuglevel=0,
-                                      strict=1, method=method)
+        http_client.HTTPResponse.__init__(self, sock, debuglevel=0,
+                                          method=method)
         self._dispatcher = HttpDispatcher(sock, self)
         self.context = None
 
@@ -104,7 +105,7 @@ class HttpResponse(httplib.HTTPResponse):
         self._dispatcher.set_timeout(timeout)
 
     def close(self):
-        httplib.HTTPResponse.close(self)
+        http_client.HTTPResponse.close(self)
         self._dispatcher.close()
 
     def _reuse(self):
@@ -116,7 +117,7 @@ class HttpResponse(httplib.HTTPResponse):
             return
         self.close()
 
-    recv = httplib.HTTPResponse.read
+    recv = http_client.HTTPResponse.read
 
 
 class HttpConnectionBase:
@@ -131,17 +132,17 @@ class HttpConnectionBase:
         '''
         return self.response_class(self.sock, method=self._method)
 
-class HttpConnection(HttpConnectionBase, httplib.HTTPConnection):
+class HttpConnection(HttpConnectionBase, http_client.HTTPConnection):
     '''
     A class of HTTP connections.
     '''
-    __init__ = httplib.HTTPConnection.__init__
+    __init__ = http_client.HTTPConnection.__init__
 
-class HttpsConnection(HttpConnectionBase, httplib.HTTPSConnection):
+class HttpsConnection(HttpConnectionBase, http_client.HTTPSConnection):
     '''
     A class of HTTPS connections.
     '''
-    __init__ = httplib.HTTPSConnection.__init__
+    __init__ = http_client.HTTPSConnection.__init__
 
 
 class HttpHandlerBase:
@@ -152,7 +153,10 @@ class HttpHandlerBase:
         '''
         Based on urllib2.AbstractHTTPHandler.do_open().
         '''
-        host = request.get_host()
+        if PY3:
+            host = request.host
+        else:
+            host = request.get_host()
         if not host:
             raise urllib_error.URLError('no host given')
 
@@ -181,7 +185,11 @@ class HttpHandlerBase:
             connection._set_tunnel(request._tunnel_host, headers=tunnel_headers)
 
         try:
-            connection.request(request.get_method(), request.get_selector(),
+            if PY3:
+                selector = request.selector
+            else:
+                selector = request.get_selector()
+            connection.request(request.get_method(), selector,
                                request.data, headers)
         except socket.error as err: # XXX what error?
             raise urllib_error.URLError(err)

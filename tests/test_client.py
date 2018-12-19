@@ -24,7 +24,6 @@ Provides unit tests for the Json-RPC2 client.py module.
 import json
 import random
 import socket
-import httplib
 import asyncore
 import unittest
 
@@ -114,11 +113,10 @@ class ClientBasicTest(ClientTestBase):
         self.client.foo(on_error=on_error)
         base.loop()
         self._assert_message(self._request, base.JsonRpcRequest)
-        self._assert_message(self._result, errors.JsonRpcResponseError)
+        self._assert_message(self._result, errors.JsonRpcParseError)
         self.assertEqual(self._result.id, self._request.id)
-        self.assertEqual(self._result.code, -32650)
-        self.assertEqual(self._result.message, 'Invalid response.')
-        self.assertEqual(self._result.data, {'exception': 'Test tcp data'})
+        self.assertEqual(self._result.data,
+                {'exception': 'No JSON object could be decoded'})
 
     def test_http_get_response(self):
         def callback(data):
@@ -132,11 +130,10 @@ class ClientBasicTest(ClientTestBase):
         self.client.foo(on_error=on_error)
         base.loop()
         self._assert_message(self._request, base.JsonRpcRequest)
-        self._assert_message(self._result, errors.JsonRpcResponseError)
+        self._assert_message(self._result, errors.JsonRpcParseError)
         self.assertEqual(self._result.id, self._request.id)
-        self.assertEqual(self._result.code, -32650)
-        self.assertEqual(self._result.message, 'Invalid response.')
-        self.assertEqual(self._result.data, {'exception': 'GET / HTTP/1.1\r\n'})
+        self.assertEqual(self._result.data,
+                {'exception': 'No JSON object could be decoded'})
 
     def test_response_timeout(self):
         def on_error(error):
