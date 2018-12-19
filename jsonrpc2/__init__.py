@@ -27,10 +27,10 @@ __license__ = 'GNU LGPLv3+'
 __author__ = 'Marcin Lyko'
 __contact__ = 'marcin.g.lyko@gmail.com'
 
-from base import VERSION as __version__
+from .base import VERSION as __version__
 
-from base import loop
-from client import JsonRpcClient
-from server import JsonRpcIface, JsonRpcServer
-from errors import JsonRpcError, JsonRpcInternalError
+from .base import loop
+from .client import JsonRpcClient
+from .server import JsonRpcIface, JsonRpcServer
+from .errors import JsonRpcError, JsonRpcInternalError
 

@@ -28,7 +28,7 @@ import urllib
 import urllib2
 import asyncore
 
-import logger
+from . import logger
 
 HTTP_HEADERS = {
     'Content-Type': 'application/json-rpc',

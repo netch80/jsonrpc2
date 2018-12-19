@@ -24,10 +24,10 @@ Definitions of Json-RPC client side classes.
 import json
 import urllib2
 
-import logger
-from http import HttpRequestContext
-from base import loads, JsonRpcNotification, JsonRpcRequest, JsonRpcResponse
-from errors import JsonRpcError, JsonRpcProtocolError, JsonRpcResponseError
+from . import logger
+from .http import HttpRequestContext
+from .base import loads, JsonRpcNotification, JsonRpcRequest, JsonRpcResponse
+from .errors import JsonRpcError, JsonRpcProtocolError, JsonRpcResponseError
 
 __metaclass__ = type
 

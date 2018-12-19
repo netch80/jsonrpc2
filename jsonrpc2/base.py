@@ -25,9 +25,9 @@ import json
 import random
 import string
 import asyncore
-import logger
+from . import logger
 
-from errors import JsonRpcError, JsonRpcParseError, InvalidJsonRpcError
+from .errors import JsonRpcError, JsonRpcParseError, InvalidJsonRpcError
 
 # The version number
 VERSION = '0.2.4'

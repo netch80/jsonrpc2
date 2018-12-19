@@ -26,10 +26,10 @@ import email
 import socket
 import asyncore
 
-import logger
-from base import dumps, loads, VERSION, \
+from . import logger
+from .base import dumps, loads, VERSION, \
                  JsonRpcNotification, JsonRpcRequest, JsonRpcResponse
-from errors import JsonRpcError, JsonRpcInternalError, \
+from .errors import JsonRpcError, JsonRpcInternalError, \
                    JsonRpcMethodNotFoundError, JsonRpcInvalidParamsError
 
 __metaclass__ = type
