@@ -43,7 +43,7 @@ def _gen_id(length=8):
     '''
     Generates random message ID.
     '''
-    return ''.join([random.choice(_ID_CHARSET) for i in xrange(length)])
+    return ''.join([random.choice(_ID_CHARSET) for i in range(length)])
 
 def dumps(message, encoding=None):
     '''

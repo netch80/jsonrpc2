@@ -35,8 +35,8 @@ def on_error(error):
 def run():
     client = JsonRpcClient('http://localhost:8082', timeout=5)
 
-    for i in xrange(-1, 5):
-        x = random.choice(xrange(1, 6))
+    for i in range(-1, 5):
+        x = random.choice(range(1, 6))
         logging.info('Power: %s ^ %s' % (x, i))
         client.power([x, i], on_result, on_error)
     loop()

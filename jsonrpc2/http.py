@@ -167,7 +167,7 @@ class HttpHandlerBase:
         # So make sure the connection gets closed after the (only)
         # request.
         headers['Connection'] = 'close'
-        headers = dict((name.title(), val) for name, val in headers.iteritems())
+        headers = dict((name.title(), val) for name, val in headers.items())
 
         if request._tunnel_host:
             tunnel_headers = {}

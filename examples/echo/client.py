@@ -41,7 +41,7 @@ def run():
         logging.error('Echo error: %s [%s]' % (error, error.data))
 
     client = JsonRpcClient('http://localhost:8081', timeout=5)
-    for i in xrange(1, 6):
+    for i in range(1, 6):
         message = 'Hello -> %d' % i
         logging.info('Say: %s' % message)
         client.say([message], on_result, on_error)
